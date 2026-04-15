@@ -391,16 +391,15 @@ body {
 }
 
 .msg {
-  display: flex;
   margin-bottom: 12px;
 }
 
 .msg--user {
-  justify-content: flex-end;
+  text-align: left;
 }
 
 .msg--ai {
-  justify-content: flex-start;
+  text-align: right;
 }
 
 .msg__bubble {

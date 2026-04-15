@@ -4,6 +4,8 @@ import { Button, Card, Input, Space, message } from "ant-design-vue";
 import { useChatStore } from "../../stores/chat";
 import { useItineraryStore } from "../../stores/itinerary";
 import type { Itinerary } from "../../types/itinerary";
+import type {deepseek_chat_chunk_t} from "./handler"
+import { SSE } from "@/utils/sse";
 
 const props = defineProps<{
   prefillText?: string;
@@ -11,7 +13,6 @@ const props = defineProps<{
 }>();
 
 const chatStore = useChatStore();
-const itineraryStore = useItineraryStore();
 
 const input = ref("");
 const canSend = computed(
@@ -27,28 +28,25 @@ watch(
   { immediate: true },
 );
 
+
+const sse = new SSE({
+  url: "http://localhost:6780/api/v1/deepseek/chat"
+}).create()
+
+sse.pushMessageListener((ev) => {
+  if (ev.data === "[DONE]") {
+    sse.close();
+  } else {
+    let res: deepseek_chat_chunk_t = JSON.parse(ev.data)
+    if (res.choices[0].delta.content) {
+      chatStore.sendMessage(res.choices[0].delta.content)
+    }
+  }
+})
+
 const handleSend = async () => {
   if (!input.value.trim()) return;
-
-  try {
-    const itinerary = await chatStore.sendMessage(input.value.trim());
-    if (itinerary) {
-      itineraryStore.saveItinerary({
-        ...(itinerary as Omit<Itinerary, "id" | "createdAt">),
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-      });
-      message.success("AI 行程已生成并保存");
-    } else {
-      message.warning("AI 返回未包含结构化 itinerary（后端接入后即可保存）");
-    }
-  } catch (error) {
-    message.error("生成失败，请稍后重试");
-    // eslint-disable-next-line no-console
-    console.error(error);
-  } finally {
-    input.value = "";
-  }
+  sse.run({msg: input.value.trim()});
 };
 </script>
 
@@ -67,18 +65,15 @@ const handleSend = async () => {
         </div>
       </div>
 
-      <div
-        v-for="messageItem in chatStore.messages"
-        :key="messageItem.id"
-        class="msg"
-        :class="messageItem.role === 'user' ? 'msg--user' : 'msg--ai'"
-      >
-        <div class="msg__bubble">
-          <div class="msg__meta">
-            {{ messageItem.role === "user" ? "你" : "Easy Tour AI" }}
-          </div>
-          <div class="msg__text">{{ messageItem.content }}</div>
-        </div>
+      <div class="msg__bubble">
+        <span
+          v-for="messageItem in chatStore.messages"
+          :key="messageItem.id"
+          class="msg"
+          :class="messageItem.role === 'user' ? 'msg--user' : 'msg--ai'"
+        >
+            {{ messageItem.content }}
+        </span>
       </div>
     </div>
 
