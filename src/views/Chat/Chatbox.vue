@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Button, Card, Input, Space, message } from "ant-design-vue";
+import { SendOutlined } from "@ant-design/icons-vue";
+import { Button, Card, Input } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
+
+const quickPrompts = [
+  "我要申请日本旅游签证，计划 7 天游览东京+大阪，预算 8000 元",
+  "帮我生成法国 10 日签证用行程，包含酒店与交通建议",
+  "生成 5 天游玩新加坡的签证行程单，偏好美食和城市景点",
+];
+
 const props = defineProps<{
   prefillText?: string;
   prefillVersion?: number;
+  selectedPrompt?: string;
+  selectedPromptVersion?: number;
+}>();
+
+const emit = defineEmits<{
+  (e: "update:selectedPrompt", prompt: string): void;
+  (e: "update:selectedPromptVersion", version: number): void;
 }>();
 
 const chatStore = useChatStore();
-
+const chatMessage = ref<HTMLDivElement | null>(null);
 const input = ref("");
 const canSend = computed(
   () => input.value.trim().length > 0 && !chatStore.loading,
@@ -23,78 +38,88 @@ watch(
   { immediate: true },
 );
 
-const sse = new SSE({
-  url: "http://localhost:6780/api/v1/deepseek/chat",
-}).create();
-
-sse.pushMessageListener((ev) => {
-  if (ev.data === "[DONE]") {
-    sse.close();
-  } else {
-    let res: deepseek_chat_chunk_t = JSON.parse(ev.data);
-    if (res.choices[0].delta.content) {
-      chatStore.sendMessage(res.choices[0].delta.content);
-    }
-  }
-});
-
 const handleSend = async () => {
   if (!input.value.trim()) return;
-  sse.run({ msg: input.value.trim() });
+  chatStore.sendMessage(input.value.trim(), () => {
+    if (chatMessage.value) {
+      chatMessage.value.scrollTop = chatMessage.value?.scrollHeight;
+    }
+  });
+
+  input.value = "";
+};
+
+const handlePromptSelect = (prompt: string) => {
+  emit("update:selectedPrompt", prompt);
+  emit("update:selectedPromptVersion", (props.selectedPromptVersion ?? 0) + 1);
 };
 </script>
 
 <template>
   <Card class="card chatgpt__card" :bordered="false">
-    <div class="chatgpt__header">
-      <div class="chatgpt__title">AI 对话</div>
-      <div class="chatgpt__hint">描述你的签证行程需求，越具体越好</div>
-    </div>
-
-    <div class="chatgpt__messages">
+    <div class="chatgpt__messages" ref="chatMessage">
       <div v-if="chatStore.messages.length === 0" class="empty-state">
-        <div class="empty-state__title">从一句需求开始</div>
+        <div class="empty-state__title">描述你的行程</div>
         <div class="empty-state__desc">
           例如：7 天日本签证行程（东京 + 大阪），预算 8000 元
         </div>
       </div>
 
-      <div class="msg__bubble">
-        <span
-          v-for="messageItem in chatStore.messages"
-          :key="messageItem.id"
-          class="msg"
-          :class="messageItem.role === 'user' ? 'msg--user' : 'msg--ai'"
-        >
-          {{ messageItem.content }}
-        </span>
+      <div
+        v-for="messageItem in chatStore.messages"
+        :key="messageItem.id"
+        class="msg"
+        :class="messageItem.role === 'user' ? 'msg--user' : 'msg--ai'"
+      >
+        <div class="msg__meta">
+          {{ messageItem.role === "user" ? "你" : "Easy Tour AI" }}
+        </div>
+        <div class="msg__bubble">
+          <div
+            class="msg__content"
+            v-html="messageItem.html ?? messageItem.content"
+          />
+        </div>
       </div>
     </div>
 
     <div class="chatgpt__composer">
-      <Input.TextArea
-        class="chatgpt__input"
-        v-model:value="input"
-        :auto-size="{ minRows: 2, maxRows: 6 }"
-        placeholder="输入你的需求…（Enter 发送，Shift+Enter 换行）"
-        @press-enter.exact.prevent="handleSend"
-      />
-      <div class="composer__actions">
-        <Space :size="10">
-          <Button
-            @click="input = ''"
-            :disabled="!input.trim() || chatStore.loading"
-            >清空</Button
+      <div class="chatgpt__quickStart">
+        <div class="chatgpt__quickStartTitle">快速开始</div>
+        <div class="chatgpt__quickStartList">
+          <button
+            v-for="prompt in quickPrompts"
+            :key="prompt"
+            class="chatgpt__quickPrompt"
+            type="button"
+            @click="handlePromptSelect(prompt)"
           >
-          <Button
-            type="primary"
-            :loading="chatStore.loading"
-            :disabled="!canSend"
-            @click="handleSend"
-          >
-            发送
-          </Button>
-        </Space>
+            {{ prompt }}
+          </button>
+        </div>
+      </div>
+
+      <div class="chatgpt__inputWrap">
+        <Input.TextArea
+          class="chatgpt__input"
+          v-model:value="input"
+          :auto-size="{ minRows: 2, maxRows: 6 }"
+          placeholder="输入你的需求…（Enter 发送，Shift+Enter 换行）"
+          @press-enter.exact.prevent="handleSend"
+        />
+        <Button
+          class="chatgpt__sendBtn"
+          type="primary"
+          shape="circle"
+          :loading="chatStore.loading"
+          :disabled="!canSend"
+          :class="!canSend ? 'btn_disable' : ''"
+          @click="handleSend"
+        >
+          <template #icon>
+            <SendOutlined class="btn__icon" />
+          </template>
+        </Button>
       </div>
     </div>
   </Card>
@@ -102,43 +127,50 @@ const handleSend = async () => {
 
 <style scoped>
 .card {
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
 }
 
 .chatgpt__header {
-  padding: 16px 16px 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.75);
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.96);
 }
 .chatgpt__card {
   padding: 0;
   overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  background: #ffffff;
 }
 
 .chatgpt__hint {
-  margin-top: 4px;
-  color: rgba(0, 0, 0, 0.6);
+  margin-top: 6px;
+  color: rgba(71, 85, 105, 0.8);
   font-size: 13px;
 }
 
 .chatgpt__messages {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
   height: 60vh;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, #f8fafc, #f6f8fb);
+  border-radius: 5px;
 }
 
 .chatgpt__title {
   font-weight: 900;
-  color: rgba(0, 0, 0, 0.88);
+  color: #0f172a;
+  font-size: 17px;
+  letter-spacing: 0.2px;
 }
 
 .empty-state {
-  padding: 18px;
-  border-radius: 14px;
-  border: 1px dashed rgba(0, 0, 0, 0.12);
-  background: rgba(255, 255, 255, 0.7);
+  padding: 22px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .empty-state__title {
@@ -153,64 +185,176 @@ const handleSend = async () => {
 
 .msg {
   display: flex;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 80%;
 }
 
 .msg--user {
-  justify-content: flex-end;
+  align-self: flex-end;
 }
 
 .msg--ai {
-  justify-content: flex-start;
-}
-
-.msg__bubble {
-  max-width: 78%;
-  padding: 12px 12px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
-}
-
-.msg--user .msg__bubble {
-  background: linear-gradient(
-    135deg,
-    rgba(24, 144, 255, 0.18),
-    rgba(255, 255, 255, 0.9)
-  );
+  align-self: flex-start;
 }
 
 .msg__meta {
   font-size: 11px;
-  font-weight: 850;
-  color: rgba(0, 0, 0, 0.55);
-  margin-bottom: 6px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: rgba(100, 116, 139, 0.85);
+  padding-inline: 6px;
 }
 
-.msg__text {
-  white-space: pre-wrap;
+.msg--user .msg__meta {
+  text-align: right;
+}
+
+.msg__bubble {
+  padding: 14px 16px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.msg--user .msg__bubble {
+  background: linear-gradient(135deg, #e6f4ff, #f4faff 60%, #ffffff);
+  border-color: rgba(147, 197, 253, 0.78);
+  border-top-right-radius: 8px;
+  box-shadow: 0 10px 24px rgba(96, 165, 250, 0.1);
+}
+
+.msg--ai .msg__bubble {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 250, 252, 0.98)
+  );
+  border-color: rgba(226, 232, 240, 0.98);
+  border-top-left-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+
+.msg--user .msg__content {
+  color: #0f3e66;
+}
+
+.msg--ai .msg__content {
+  color: #1e293b;
+}
+
+.msg__content {
+  line-height: 1.72;
   word-break: break-word;
-  color: rgba(0, 0, 0, 0.78);
-  line-height: 1.6;
+  font-size: 14px;
+}
+
+.msg__content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.msg__content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.msg--user :deep(p),
+.msg--user :deep(li),
+.msg--user :deep(strong),
+.msg--user :deep(code) {
+  color: inherit;
+}
+
+.msg--ai :deep(code),
+.msg--user :deep(code) {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.msg--ai :deep(code) {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.msg--user :deep(code) {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.msg--ai :deep(pre) {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.04);
+  overflow-x: auto;
+}
+
+.msg--user :deep(pre) {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+  overflow-x: auto;
 }
 
 .chatgpt__composer {
-  padding: 12px 16px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
+  padding: 10px 14px 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.98);
 }
 
-.composer__actions {
-  margin-top: 10px;
+.chatgpt__quickStart {
+  margin-bottom: 10px;
+}
+
+.chatgpt__quickStartTitle {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(71, 85, 105, 0.82);
+}
+
+.chatgpt__quickStartList {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chatgpt__quickPrompt {
+  appearance: none;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.chatgpt__quickPrompt:hover {
+  background: #eef6ff;
+  border-color: rgba(96, 165, 250, 0.8);
+  transform: translateY(-1px);
+}
+
+.chatgpt__inputWrap {
+  position: relative;
 }
 
 .chatgpt__input {
   width: 100%;
-  height: 100px !important;
+  height: 58px !important;
   resize: none;
+}
+
+.chatgpt__input :deep(textarea) {
+  padding: 11px 52px 11px 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border-color: rgba(203, 213, 225, 0.9);
+  box-shadow: none;
 }
 
 .chatgpt__input:focus {
@@ -218,10 +362,48 @@ const handleSend = async () => {
 }
 
 .chatgpt__input:hover {
-  border-color: rgba(24, 144, 255, 0.35);
+  border-color: rgba(148, 163, 184, 0.9);
 }
 
 .chatgpt__input:focus {
-  border-color: rgba(24, 144, 255, 0.35);
+  border-color: rgba(59, 130, 246, 0.9);
+}
+
+.chatgpt__sendBtn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  border: 0;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.btn_disable {
+  background: #a1a1a1 !important;
+}
+
+.btn__icon {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .chatgpt__messages {
+    height: 54vh;
+    padding: 14px;
+  }
+
+  .msg {
+    max-width: 90%;
+  }
+
+  .chatgpt__composer {
+    padding: 10px 12px 12px;
+  }
 }
 </style>

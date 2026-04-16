@@ -21,6 +21,10 @@ const selectedPromptVersion = ref(0);
         <Chatbox
           :prefill-text="selectedPrompt"
           :prefill-version="selectedPromptVersion"
+          :selected-prompt="selectedPrompt"
+          :selected-prompt-version="selectedPromptVersion"
+          @update:selectedPrompt="selectedPrompt = $event"
+          @update:selectedPromptVersion="selectedPromptVersion = $event"
         />
       </div>
     </div>

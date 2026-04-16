@@ -179,7 +179,7 @@ const trustStats = [
       <Divider class="section--steps__divider" />
       <Space wrap :size="12">
         <Button type="primary" size="large" @click="router.push('/chat')"
-          >现在就生成</Button
+          >立即体验</Button
         >
       </Space>
     </Card>

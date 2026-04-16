@@ -1,5 +1,5 @@
 <template>
-    <Layout class="app-layout">
+  <Layout class="app-layout">
     <LayoutHeader class="app-header">
       <div class="app-brand" @click="router.push('/')">
         <img class="app-brand__logo" src="/icon/icon.png" alt="Easy Tour logo" />
