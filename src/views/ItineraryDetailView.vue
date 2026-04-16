@@ -1,20 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import BasicLayout from '../layouts/BasicLayout.vue'
-import { useItineraryStore } from '../stores/itinerary'
-import { exportItineraryExcel } from '../utils/exportExcel'
-import { exportItineraryPdf } from '../utils/exportPdf'
-import { Button, Card, Descriptions, Divider, Result, Space, Timeline } from 'ant-design-vue'
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import BasicLayout from "@/layouts/BasicLayout.vue";
+import { useItineraryStore } from "@/stores/itinerary";
+import { exportItineraryExcel } from "@/utils/exportExcel";
+import { exportItineraryPdf } from "@/utils/exportPdf";
+import {
+  Button,
+  Card,
+  Descriptions,
+  Divider,
+  Result,
+  Space,
+  Timeline,
+} from "ant-design-vue";
 
-const route = useRoute()
-const router = useRouter()
-const store = useItineraryStore()
+const route = useRoute();
+const router = useRouter();
+const store = useItineraryStore();
 
 const itinerary = computed(() => {
-  const id = String(route.params.id || '')
-  return store.getById(id)
-})
+  const id = String(route.params.id || "");
+  return store.getById(id);
+});
 </script>
 
 <template>
@@ -26,7 +34,9 @@ const itinerary = computed(() => {
         sub-title="请返回列表页查看已保存的行程"
       >
         <template #extra>
-          <Button type="primary" @click="router.push('/itineraries')">返回列表</Button>
+          <Button type="primary" @click="router.push('/itineraries')"
+            >返回列表</Button
+          >
         </template>
       </Result>
     </Card>
@@ -34,12 +44,25 @@ const itinerary = computed(() => {
     <Card v-else class="card" :title="itinerary.title">
       <Space direction="vertical" class="detail-stack" :size="16">
         <Descriptions bordered :column="1" size="middle">
-          <Descriptions.Item label="国家">{{ itinerary.country }}</Descriptions.Item>
-          <Descriptions.Item label="城市">{{ itinerary.cities.join(' / ') }}</Descriptions.Item>
-          <Descriptions.Item label="日期">{{ itinerary.departureDate }} ~ {{ itinerary.returnDate }}</Descriptions.Item>
-          <Descriptions.Item label="天数">{{ itinerary.duration }}</Descriptions.Item>
-          <Descriptions.Item label="预算">{{ itinerary.budget }}</Descriptions.Item>
-          <Descriptions.Item label="摘要">{{ itinerary.summary }}</Descriptions.Item>
+          <Descriptions.Item label="国家">{{
+            itinerary.country
+          }}</Descriptions.Item>
+          <Descriptions.Item label="城市">{{
+            itinerary.cities.join(" / ")
+          }}</Descriptions.Item>
+          <Descriptions.Item label="日期"
+            >{{ itinerary.departureDate }} ~
+            {{ itinerary.returnDate }}</Descriptions.Item
+          >
+          <Descriptions.Item label="天数">{{
+            itinerary.duration
+          }}</Descriptions.Item>
+          <Descriptions.Item label="预算">{{
+            itinerary.budget
+          }}</Descriptions.Item>
+          <Descriptions.Item label="摘要">{{
+            itinerary.summary
+          }}</Descriptions.Item>
           <Descriptions.Item v-if="itinerary.visaPurposeNote" label="签证说明">
             {{ itinerary.visaPurposeNote }}
           </Descriptions.Item>
@@ -72,6 +95,11 @@ const itinerary = computed(() => {
 </template>
 
 <style scoped>
+.card {
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+}
+
 .detail-stack {
   width: 100%;
 }
@@ -89,4 +117,3 @@ const itinerary = computed(() => {
   margin: 0 0 8px 18px;
 }
 </style>
-

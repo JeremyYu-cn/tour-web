@@ -54,7 +54,75 @@ const handlePromptSelect = (prompt: string) => {
 </template>
 
 <style scoped>
+.chatgpt__sidebar {
+  position: sticky;
+  top: 84px;
+  height: calc(100vh - 110px);
+  overflow: auto;
+  border-radius: 14px;
+}
+
+.sidebar__card {
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+}
+
+.sidebar__title {
+  font-size: 16px;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.88);
+}
+
 .sidebar__subtitle {
+  margin-top: 4px;
   padding: 10px 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+}
+
+.sidebar__tags {
+  margin-top: 10px;
+}
+
+.sidebar__divider {
+  margin: 14px 0;
+}
+
+.sidebar__sectionTitle {
+  font-weight: 850;
+  color: rgba(0, 0, 0, 0.78);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.sidebar__promptList {
+  width: 100%;
+}
+
+.sidebar__prompt {
+  text-align: left;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.76);
+  line-height: 1.45;
+}
+
+.sidebar__prompt:hover {
+  border-color: rgba(24, 144, 255, 0.35);
+  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+}
+
+@media (max-width: 640px) {
+  .chatgpt__sidebar {
+    position: static;
+    height: auto;
+  }
 }
 </style>

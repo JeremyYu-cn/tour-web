@@ -74,3 +74,84 @@ const onChange = (val: string | number) => {
 }
 </script>
 
+<style scoped>
+.app-tabbar--top {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.app-tabbar__top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 8px 6px;
+}
+
+.app-tabbar__topItem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 750;
+  position: relative;
+  transition: color 0.15s ease, transform 0.08s ease;
+}
+
+.app-tabbar__topItem:active {
+  transform: scale(0.98);
+}
+
+.app-tabbar__topItem.is-active {
+  color: var(--brand-sky-2);
+}
+
+@media (max-width: 640px) {
+  .app-tabbar {
+    width: 100%;
+    pointer-events: auto;
+  }
+
+  .app-tabbar__bottom {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 20px 12px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 14px 40px rgba(16, 24, 40, 0.14);
+  }
+
+  .app-tabbar__item {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-weight: 800;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.08s ease, color 0.15s ease;
+  }
+
+  .app-tabbar__item:active {
+    transform: scale(0.98);
+  }
+
+  .app-tabbar__item.is-active {
+    background: rgba(51, 179, 255, 0.12);
+    color: var(--brand-sky-2);
+  }
+
+  .app-tabbar__label {
+    display: inline-block;
+    font-size: 13px;
+    line-height: 1;
+  }
+}
+</style>

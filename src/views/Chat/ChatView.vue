@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import BasicLayout from "../../layouts/BasicLayout.vue";
+import BasicLayout from "@/layouts/BasicLayout.vue";
 import Chatbox from "./Chatbox.vue";
 import Chatmenu from "./Chatmenu.vue";
 
@@ -28,15 +28,20 @@ const selectedPromptVersion = ref(0);
 </template>
 
 <style scoped>
-.sidebar__tags {
-  margin-top: 10px;
+.chatgpt {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
-.sidebar__divider {
-  margin: 14px 0;
+.chatgpt__main {
+  min-width: 0;
 }
 
-.sidebar__promptList {
-  width: 100%;
+@media (max-width: 640px) {
+  .chatgpt {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BasicLayout from "../layouts/BasicLayout.vue";
+import BasicLayout from "@/layouts/BasicLayout.vue";
 import { useRouter } from "vue-router";
 import { Button, Card, Col, Divider, Row, Space, Tag } from "ant-design-vue";
 
@@ -187,12 +187,98 @@ const trustStats = [
 </template>
 
 <style scoped>
+.card {
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.hero {
+  border-radius: 18px;
+  padding: 28px 22px;
+  margin-bottom: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(24, 144, 255, 0.16),
+    rgba(255, 255, 255, 0.75)
+  );
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.hero--landing {
+  padding: 26px;
+}
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.hero__badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero__title {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.hero__title--landing {
+  font-size: 42px;
+}
+
+.hero__subtitle {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .hero__actions {
   margin: 10px 0px !important;
 }
 
+.hero__btn-secondary {
+  border-color: rgba(26, 162, 255, 0.35) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--brand-sky-2) !important;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(26, 162, 255, 0.12);
+}
+
+.hero__btn-secondary:hover,
+.hero__btn-secondary:focus {
+  border-color: rgba(26, 162, 255, 0.55) !important;
+  color: #0e8fde !important;
+  transform: translateY(-1px);
+}
+
+.hero__trust {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .hero__stat {
   border: 0;
+  border-radius: 14px;
+  padding: 10px 12px;
   transition:
     transform 0.16s ease,
     box-shadow 0.16s ease;
@@ -262,6 +348,15 @@ const trustStats = [
   margin-bottom: 10px;
 }
 
+.hero__panel {
+  display: flex;
+}
+
+.hero-panel {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.7);
+}
+
 .hero-panel__promptList {
   width: 100%;
 }
@@ -270,8 +365,56 @@ const trustStats = [
   margin: 14px 0;
 }
 
+.prompt-chip {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+  color: rgba(0, 0, 0, 0.78);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.prompt-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feature__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  background: rgba(24, 144, 255, 0.12);
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.feature__title {
+  font-size: 16px;
+  font-weight: 850;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.feature__desc {
+  color: rgba(0, 0, 0, 0.65);
+}
+
 .section--steps {
   margin-top: 16px;
+  background: rgba(255, 255, 255, 0.75);
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.96),
@@ -328,6 +471,10 @@ const trustStats = [
 }
 
 .step--home {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  height: 100%;
   background: linear-gradient(
     150deg,
     rgba(255, 255, 255, 0.98),
@@ -338,6 +485,9 @@ const trustStats = [
 }
 
 .step--home .step__num {
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  font-size: 12px;
   color: #1677ff;
   background: rgba(22, 119, 255, 0.08);
   border: 1px solid rgba(22, 119, 255, 0.14);
@@ -350,10 +500,13 @@ const trustStats = [
 }
 
 .step--home .step__title {
+  font-weight: 900;
+  margin-top: 6px;
   color: #0f172a;
 }
 
 .step--home .step__desc {
+  margin-top: 6px;
   color: rgba(15, 23, 42, 0.68);
 }
 
@@ -363,5 +516,23 @@ const trustStats = [
 
 .section--steps__divider {
   margin: 18px 0 12px;
+}
+
+@media (max-width: 640px) {
+  .hero__title {
+    font-size: 28px;
+  }
+
+  .hero__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero__title--landing {
+    font-size: 30px;
+  }
+
+  .hero__trust {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
