@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { SendOutlined } from "@ant-design/icons-vue";
-import { Button, Card, Input } from "ant-design-vue";
+import { Button, Card, Input, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
+import { getSessionIdAPI } from "@/api/ai";
 
 const quickPrompts = [
   "我要申请日本旅游签证，计划 7 天游览东京+大阪，预算 8000 元",
@@ -40,7 +41,15 @@ watch(
 
 const handleSend = async () => {
   if (!input.value.trim()) return;
-  chatStore.sendMessage(input.value.trim(), () => {
+
+  const session = await getSessionIdAPI();
+
+  if (!session.ok) {
+    message.error("Get Session ID fail");
+    return;
+  }
+
+  chatStore.sendMessage(input.value.trim(), session.data.sessionID, () => {
     if (chatMessage.value) {
       chatMessage.value.scrollTop = chatMessage.value?.scrollHeight;
     }

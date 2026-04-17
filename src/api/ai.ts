@@ -1,6 +1,13 @@
-import axios from "axios";
+import request, { type common_reponse_t } from "@/utils/request";
 
-export async function generateItineraryByAI(prompt: string) {
-  const { data } = await axios.post("/api/ai/plan", { prompt });
-  return data as { text: string; itinerary?: unknown };
+type get_session_response_t = {
+  sessionID: string;
+};
+
+export async function getSessionIdAPI() {
+  const res = await request.post<common_reponse_t<get_session_response_t>>(
+    "/chat/session/create",
+  );
+
+  return res.data;
 }
