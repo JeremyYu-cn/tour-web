@@ -7,7 +7,7 @@ const routes = [
     component: () => import("../views/HomeView.vue"),
   },
   {
-    path: "/chat",
+    path: "/chat/:sessionId?",
     name: "chat",
     component: () => import("../views/Chat/ChatView.vue"),
   },

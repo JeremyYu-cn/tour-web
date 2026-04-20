@@ -1,32 +1,36 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { Divider, Empty } from "ant-design-vue";
+import { useRouter } from "vue-router";
+import { Button, Divider, Empty } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
 
+const router = useRouter();
 const chatStore = useChatStore();
 
-const props = defineProps<{
-  selectedPrompt: string;
-  selectedPromptVersion: number;
-}>();
+const handleHistorySelect = (sessionId: string) => {
+  if (
+    chatStore.loading ||
+    chatStore.historyContentLoading ||
+    chatStore.activeSessionId === sessionId
+  ) {
+    return;
+  }
 
-const emit = defineEmits<{
-  (e: "update:selectedPrompt", prompt: string): void;
-  (e: "update:selectedPromptVersion", version: number): void;
-}>();
-
-const handlePromptSelect = (prompt: string) => {
-  emit("update:selectedPrompt", prompt);
-  emit("update:selectedPromptVersion", props.selectedPromptVersion + 1);
+  void router.push({
+    name: "chat",
+    params: {
+      sessionId,
+    },
+  });
 };
 
-const historyItems = computed(() =>
-  chatStore.messages
-    .filter((item) => item.role === "user" && item.content.trim())
-    .slice()
-    .reverse()
-    .slice(0, 8),
-);
+const handleCreateConversation = async () => {
+  if (chatStore.loading || chatStore.historyContentLoading) {
+    return;
+  }
+
+  chatStore.resetCurrentSession();
+  await router.push("/chat");
+};
 </script>
 
 <template>
@@ -35,18 +39,34 @@ const historyItems = computed(() =>
       <div class="sidebar__title">Easy Tour AI</div>
       <div class="sidebar__subtitle">生成“签证友好”的结构化行程</div>
 
+      <Button
+        block
+        type="primary"
+        class="sidebar__newBtn"
+        :disabled="chatStore.loading || chatStore.historyContentLoading"
+        @click="handleCreateConversation"
+      >
+        新建对话
+      </Button>
+
+      <Divider class="sidebar__divider" />
+
       <div class="sidebar__sectionTitle">History</div>
-      <div v-if="historyItems.length" class="sidebar__historyList">
+      <div v-if="chatStore.historyItems.length" class="sidebar__historyList">
         <button
-          v-for="item in historyItems"
-          :key="item.id"
-          class="sidebar__historyItem"
+          v-for="item in chatStore.historyItems"
+          :key="item.sessionId"
+          :class="[
+            'sidebar__historyItem',
+            chatStore.activeSessionId === item.sessionId && 'is-active',
+          ]"
           type="button"
-          @click="handlePromptSelect(item.content)"
+          :disabled="chatStore.loading || chatStore.historyContentLoading"
+          @click="handleHistorySelect(item.sessionId)"
         >
-          <div class="sidebar__historyText">{{ item.content }}</div>
-          <div class="sidebar__historyTime">
-            {{ new Date(item.createdAt).toLocaleString() }}
+          <div class="sidebar__historyText">{{ item.title }}</div>
+          <div class="sidebar__historyMeta">
+            {{ item.sessionId }}
           </div>
         </button>
       </div>
@@ -54,10 +74,10 @@ const historyItems = computed(() =>
         v-else
         class="sidebar__empty"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
-        description="还没有历史记录"
+        :description="
+          chatStore.historyLoading ? '历史记录加载中' : '还没有历史记录'
+        "
       />
-
-      <Divider class="sidebar__divider" />
     </div>
   </div>
 </template>
@@ -87,9 +107,16 @@ const historyItems = computed(() =>
 
 .sidebar__subtitle {
   margin-top: 4px;
-  padding: 10px 0;
+  padding: 10px 0 0;
   color: rgba(0, 0, 0, 0.6);
   font-size: 13px;
+}
+
+.sidebar__newBtn {
+  margin-top: 12px;
+  height: 40px;
+  border-radius: 12px;
+  font-weight: 800;
 }
 
 .sidebar__divider {
@@ -123,10 +150,21 @@ const historyItems = computed(() =>
     transform 0.15s ease;
 }
 
+.sidebar__historyItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .sidebar__historyItem:hover {
   transform: translateY(-1px);
   border-color: rgba(24, 144, 255, 0.3);
   box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+}
+
+.sidebar__historyItem.is-active {
+  border-color: rgba(24, 144, 255, 0.52);
+  background: rgba(230, 244, 255, 0.92);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.1);
 }
 
 .sidebar__historyText {
@@ -138,10 +176,11 @@ const historyItems = computed(() =>
   overflow: hidden;
 }
 
-.sidebar__historyTime {
+.sidebar__historyMeta {
   margin-top: 6px;
   font-size: 12px;
   color: rgba(15, 23, 42, 0.46);
+  word-break: break-all;
 }
 
 .sidebar__empty {

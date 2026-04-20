@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { useRouter } from "vue-router";
 import { SendOutlined } from "@ant-design/icons-vue";
 import { Button, Card, Input, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
-import { getSessionIdAPI } from "@/api/ai";
 
 const quickPrompts = [
   "我要申请日本旅游签证，计划 7 天游览东京+大阪，预算 8000 元",
@@ -11,63 +11,78 @@ const quickPrompts = [
   "生成 5 天游玩新加坡的签证行程单，偏好美食和城市景点",
 ];
 
-const props = defineProps<{
-  prefillText?: string;
-  prefillVersion?: number;
-  selectedPrompt?: string;
-  selectedPromptVersion?: number;
-}>();
-
-const emit = defineEmits<{
-  (e: "update:selectedPrompt", prompt: string): void;
-  (e: "update:selectedPromptVersion", version: number): void;
-}>();
-
+const router = useRouter();
 const chatStore = useChatStore();
 const chatMessage = ref<HTMLDivElement | null>(null);
 const input = ref("");
 const canSend = computed(
-  () => input.value.trim().length > 0 && !chatStore.loading,
+  () =>
+    input.value.trim().length > 0 &&
+    !chatStore.loading &&
+    !chatStore.historyContentLoading,
 );
 
-watch(
-  () => [props.prefillText, props.prefillVersion] as const,
-  ([nextText]) => {
-    if (!nextText) return;
-    input.value = nextText;
-  },
-  { immediate: true },
-);
+const scrollToBottom = async () => {
+  await nextTick();
+  if (chatMessage.value) {
+    chatMessage.value.scrollTop = chatMessage.value.scrollHeight;
+  }
+};
 
 const handleSend = async () => {
-  if (!input.value.trim()) return;
+  const content = input.value.trim();
+  if (!content) return;
 
-  const session = await getSessionIdAPI();
+  let sessionId = chatStore.activeSessionId;
 
-  if (!session.ok) {
-    message.error("Get Session ID fail");
-    return;
+  if (!sessionId) {
+    const createdSessionId = await chatStore.createSession();
+    if (!createdSessionId) {
+      message.error("创建会话失败");
+      return;
+    }
+
+    sessionId = createdSessionId;
+
+    await router.replace({
+      name: "chat",
+      params: {
+        sessionId,
+      },
+    });
   }
 
-  chatStore.sendMessage(input.value.trim(), session.data.sessionID, () => {
-    if (chatMessage.value) {
-      chatMessage.value.scrollTop = chatMessage.value?.scrollHeight;
-    }
-  });
-
   input.value = "";
+
+  try {
+    await chatStore.sendMessage(content, sessionId, () => {
+      void scrollToBottom();
+    });
+    await scrollToBottom();
+  } catch (err) {
+    input.value = content;
+    message.error("消息发送失败");
+    console.log(err);
+  }
 };
 
 const handlePromptSelect = (prompt: string) => {
-  emit("update:selectedPrompt", prompt);
-  emit("update:selectedPromptVersion", (props.selectedPromptVersion ?? 0) + 1);
+  input.value = prompt;
 };
 </script>
 
 <template>
   <Card class="card chatgpt__card" :bordered="false">
     <div class="chatgpt__messages" ref="chatMessage">
-      <div v-if="chatStore.messages.length === 0" class="empty-state">
+      <div
+        v-if="chatStore.historyContentLoading && chatStore.messages.length === 0"
+        class="empty-state"
+      >
+        <div class="empty-state__title">正在加载会话</div>
+        <div class="empty-state__desc">历史消息加载完成后会显示在这里</div>
+      </div>
+
+      <div v-else-if="chatStore.messages.length === 0" class="empty-state">
         <div class="empty-state__title">描述你的行程</div>
         <div class="empty-state__desc">
           例如：7 天日本签证行程（东京 + 大阪），预算 8000 元
@@ -114,6 +129,7 @@ const handlePromptSelect = (prompt: string) => {
           v-model:value="input"
           :auto-size="{ minRows: 2, maxRows: 6 }"
           placeholder="输入你的需求…（Enter 发送，Shift+Enter 换行）"
+          :disabled="chatStore.historyContentLoading"
           @press-enter.exact.prevent="handleSend"
         />
         <Button

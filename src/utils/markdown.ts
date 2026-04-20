@@ -1,6 +1,11 @@
 import { marked } from "marked";
 import dompurify from "dompurify";
 
+export async function renderMarkdown(content: string) {
+  const html = await marked(content);
+  return dompurify.sanitize(html);
+}
+
 /**
  *
  * @param interval ms
@@ -16,8 +21,7 @@ export function secheduleRender(interval: number = 100) {
     }
 
     renderTimer = setTimeout(async () => {
-      const html = await marked(cache);
-      cb(dompurify.sanitize(html));
+      cb(await renderMarkdown(cache));
       renderTimer = null;
     }, interval);
   };

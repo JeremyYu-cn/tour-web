@@ -1,31 +1,51 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import BasicLayout from "@/layouts/BasicLayout.vue";
+import { useChatStore } from "@/stores/chat";
 import Chatbox from "./Chatbox.vue";
 import Chatmenu from "./Chatmenu.vue";
 
-const selectedPrompt = ref("");
-const selectedPromptVersion = ref(0);
+const route = useRoute();
+const chatStore = useChatStore();
+const historyReady = ref(false);
+
+const syncSessionByRoute = async (nextSessionId: unknown) => {
+  if (!historyReady.value) {
+    await chatStore.fetchHistoryList();
+    historyReady.value = true;
+  }
+
+  const sessionId = typeof nextSessionId === "string" ? nextSessionId : "";
+
+  if (!sessionId) {
+    chatStore.resetCurrentSession();
+    return;
+  }
+
+  if (!chatStore.hasHistorySession(sessionId)) {
+    chatStore.ensureActiveSession(sessionId);
+    return;
+  }
+
+  await chatStore.loadHistoryContent(sessionId);
+};
+
+watch(
+  () => route.params.sessionId,
+  (sessionId) => {
+    void syncSessionByRoute(sessionId);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <BasicLayout>
     <div class="chatgpt">
-      <Chatmenu
-        :selected-prompt="selectedPrompt"
-        :selected-prompt-version="selectedPromptVersion"
-        @update:selectedPrompt="selectedPrompt = $event"
-        @update:selectedPromptVersion="selectedPromptVersion = $event"
-      />
+      <Chatmenu />
       <div class="chatgpt__main">
-        <Chatbox
-          :prefill-text="selectedPrompt"
-          :prefill-version="selectedPromptVersion"
-          :selected-prompt="selectedPrompt"
-          :selected-prompt-version="selectedPromptVersion"
-          @update:selectedPrompt="selectedPrompt = $event"
-          @update:selectedPromptVersion="selectedPromptVersion = $event"
-        />
+        <Chatbox />
       </div>
     </div>
   </BasicLayout>

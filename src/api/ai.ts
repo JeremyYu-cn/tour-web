@@ -1,4 +1,5 @@
-import request, { type common_reponse_t } from "@/utils/request";
+import type { common_reponse_t } from "@/types/request";
+import request from "@/utils/request";
 
 type get_session_response_t = {
   sessionID: string;
