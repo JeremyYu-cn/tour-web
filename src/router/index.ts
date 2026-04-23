@@ -12,14 +12,13 @@ const routes = [
     component: () => import("../views/Chat/ChatView.vue"),
   },
   {
-    path: "/itineraries",
-    name: "itineraries",
-    component: () => import("../views/ItineraryListView.vue"),
+    path: "/recommendations",
+    redirect: "/itineraries",
   },
   {
-    path: "/itineraries/:id",
-    name: "itinerary-detail",
-    component: () => import("../views/ItineraryDetailView.vue"),
+    path: "/itineraries",
+    name: "recommendations",
+    component: () => import("../views/RecommendView.vue"),
   },
 ];
 

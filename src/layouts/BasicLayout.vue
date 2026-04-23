@@ -48,7 +48,7 @@ const tabs: AppTab[] = [
   {
     label: "推荐行程",
     value: "/itineraries",
-    match: (p) => p.startsWith("/itineraries"),
+    match: (p) => p.startsWith("/itineraries") || p.startsWith("/recommendations"),
   },
 ];
 

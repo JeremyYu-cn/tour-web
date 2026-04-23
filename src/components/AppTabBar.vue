@@ -14,7 +14,7 @@
 
     <Segmented v-else-if="variant === 'segmented'" v-model:value="selectedValue" :options="segmentedOptions" size="large" @change="onChange" />
 
-    <nav v-else class="app-tabbar__bottom" aria-label="Tab bar">
+    <nav v-else class="app-tabbar__bottom" :style="bottomGridStyle" aria-label="Tab bar">
       <button
         v-for="t in tabs"
         :key="t.value"
@@ -54,6 +54,9 @@ const emit = defineEmits<{
 }>()
 
 const segmentedOptions = computed(() => props.tabs.map((t) => ({ label: t.label, value: t.value })))
+const bottomGridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${Math.max(props.tabs.length, 1)}, minmax(0, 1fr))`,
+}))
 
 const isActive = (tab: AppTab) => {
   if (tab.match) return tab.match(props.currentPath)
@@ -117,7 +120,6 @@ const onChange = (val: string | number) => {
   .app-tabbar__bottom {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     padding: 20px 12px;
     border-radius: 18px;

@@ -11,9 +11,10 @@ type retryable_request_t = InternalAxiosRequestConfig & {
 };
 
 const AUTH_RETRY_LIMIT = 1;
+const BASE_URL = "http://localhost:6780/api/v1";
 
 const request = axios.create({
-  baseURL: "http://localhost:6780/api/v1",
+  baseURL: BASE_URL,
 });
 
 request.interceptors.request.use((req: retryable_request_t) => {

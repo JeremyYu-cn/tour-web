@@ -39,14 +39,14 @@ const trustStats = [
 
           <Space class="hero__actions" wrap :size="12">
             <Button type="primary" size="large" @click="router.push('/chat')"
-              >免费生成我的行程</Button
+              >免费生成行程</Button
             >
             <Button
               class="hero__btn-secondary"
               size="large"
               @click="router.push('/itineraries')"
             >
-              查看示例/已保存行程
+              查看推荐行程
             </Button>
           </Space>
 
@@ -92,7 +92,9 @@ const trustStats = [
               <Button type="primary" @click="router.push('/chat')"
                 >开始生成</Button
               >
-              <Button @click="router.push('/itineraries')">我先看看成果</Button>
+              <Button @click="router.push('/itineraries')">
+                看看推荐行程
+              </Button>
             </Space>
           </Card>
         </div>

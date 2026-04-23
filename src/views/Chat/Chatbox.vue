@@ -5,6 +5,10 @@ import { SendOutlined } from "@ant-design/icons-vue";
 import { Button, Card, Input, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
 import type { ChatMessageItem } from "@/types/chat";
+import {
+  exportMarkdownTableExcel,
+  hasTravelPlanTable,
+} from "@/utils/exportExcel";
 
 const quickPrompts = [
   "我要申请日本旅游签证，计划 7 天游览东京+大阪，预算 8000 元",
@@ -76,6 +80,39 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
   chatStore.loading &&
   chatStore.activeSessionId === messageItem.sessionId &&
   !messageItem.content;
+
+const isAssistantMessageStreaming = (messageItem: ChatMessageItem) =>
+  messageItem.role === "assistant" &&
+  chatStore.loading &&
+  chatStore.activeSessionId === messageItem.sessionId &&
+  chatStore.messages.at(-1)?.id === messageItem.id;
+
+const canExportAssistantTable = (messageItem: ChatMessageItem) =>
+  messageItem.role === "assistant" &&
+  hasTravelPlanTable(messageItem.content);
+
+const getExportFileName = (messageItem: ChatMessageItem) => {
+  const sessionTitle = chatStore.historyItems.find(
+    (item) => item.sessionId === messageItem.sessionId,
+  )?.title;
+
+  return sessionTitle
+    ? `${sessionTitle}-travel-plan.xlsx`
+    : `travel-plan-${messageItem.sessionId.slice(0, 8)}.xlsx`;
+};
+
+const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
+  try {
+    await exportMarkdownTableExcel(
+      messageItem.content,
+      getExportFileName(messageItem),
+    );
+    message.success("Excel 已导出");
+  } catch (err) {
+    console.log(err);
+    message.error("未识别到可导出的行程表格");
+  }
+};
 </script>
 
 <template>
@@ -123,6 +160,24 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
             class="msg__content"
             v-html="messageItem.html ?? messageItem.content"
           />
+          <div
+            v-if="canExportAssistantTable(messageItem)"
+            class="msg__actions"
+          >
+            <Button
+              class="msg__exportBtn"
+              size="small"
+              type="default"
+              :disabled="isAssistantMessageStreaming(messageItem)"
+              @click="handleExportAssistantTable(messageItem)"
+            >
+              {{
+                isAssistantMessageStreaming(messageItem)
+                  ? "输出完成后可导出"
+                  : "导出 Excel"
+              }}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -130,6 +185,9 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
     <div class="chatgpt__composer">
       <div class="chatgpt__quickStart">
         <div class="chatgpt__quickStartTitle">快速开始</div>
+        <div class="chatgpt__quickStartHint">
+          需要导出 Excel 时，建议让 AI 以 Markdown 表格返回行程。
+        </div>
         <div class="chatgpt__quickStartList">
           <button
             v-for="prompt in quickPrompts"
@@ -357,6 +415,48 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
   word-break: break-word;
 }
 
+.msg__actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+:deep(.msg__exportBtn) {
+  height: 30px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #166534;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.14);
+}
+
+:deep(.msg__exportBtn:hover) {
+  border-color: rgba(22, 163, 74, 0.34);
+  background: linear-gradient(135deg, #ecfdf5, #bbf7d0);
+  color: #14532d;
+}
+
+:deep(.msg__exportBtn.ant-btn-default:not(:disabled):not(.ant-btn-disabled)) {
+  border-color: rgba(22, 163, 74, 0.24);
+  color: #166534;
+}
+
+:deep(.msg__exportBtn.ant-btn-default:not(:disabled):not(.ant-btn-disabled):hover) {
+  border-color: rgba(21, 128, 61, 0.38);
+  color: #14532d;
+}
+
+:deep(.msg__exportBtn:disabled),
+:deep(.msg__exportBtn.ant-btn-default:disabled),
+:deep(.msg__exportBtn.ant-btn-default.ant-btn-disabled) {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: linear-gradient(135deg, #f8fafc, #eef2f7);
+  color: rgba(100, 116, 139, 0.86);
+  box-shadow: none;
+}
+
 @keyframes loading-bounce {
   0%,
   80%,
@@ -434,10 +534,11 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
 }
 
 .msg__content :deep(.markdown-table) {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: 13px;
 }
 
@@ -448,9 +549,9 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
   border-right: 1px solid rgba(226, 232, 240, 0.88);
   border-bottom: 1px solid rgba(226, 232, 240, 0.88);
   vertical-align: top;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .msg__content :deep(.markdown-table th) {
@@ -458,6 +559,49 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
   color: #0f172a;
   font-weight: 800;
   text-align: left;
+  white-space: nowrap;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(1)),
+.msg__content :deep(.markdown-table td:nth-child(1)) {
+  width: 110px;
+  min-width: 110px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(2)),
+.msg__content :deep(.markdown-table td:nth-child(2)) {
+  width: 88px;
+  min-width: 88px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(3)),
+.msg__content :deep(.markdown-table td:nth-child(3)) {
+  width: 100px;
+  min-width: 100px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(4)),
+.msg__content :deep(.markdown-table td:nth-child(4)) {
+  width: 340px;
+  min-width: 340px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(5)),
+.msg__content :deep(.markdown-table td:nth-child(5)) {
+  width: 88px;
+  min-width: 88px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(6)),
+.msg__content :deep(.markdown-table td:nth-child(6)) {
+  width: 150px;
+  min-width: 150px;
+}
+
+.msg__content :deep(.markdown-table th:nth-child(7)),
+.msg__content :deep(.markdown-table td:nth-child(7)) {
+  width: 170px;
+  min-width: 170px;
 }
 
 .msg__content :deep(.markdown-table tbody tr:nth-child(even)) {
@@ -488,6 +632,12 @@ const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
   font-size: 12px;
   font-weight: 800;
   color: rgba(71, 85, 105, 0.82);
+}
+
+.chatgpt__quickStartHint {
+  margin-bottom: 8px;
+  color: rgba(100, 116, 139, 0.92);
+  font-size: 12px;
 }
 
 .chatgpt__quickStartList {
