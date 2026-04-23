@@ -5,6 +5,8 @@ export type history_content_t = {
   userId: string;
   sessionId: string;
   content: string;
+  Content?: string;
+  reasoning_content?: string;
   createTime: string;
   role: "assistant" | "user";
 };
@@ -17,6 +19,14 @@ export async function getHistoryListAPI() {
 
 export async function getHistoryContentAPI(session_id: string) {
   const res = await request.get<common_reponse_t<history_content_t[]>>(
+    `/chat/history/${session_id}`,
+  );
+
+  return res.data;
+}
+
+export async function deleteHistoryAPI(session_id: string) {
+  const res = await request.delete<common_reponse_t<string>>(
     `/chat/history/${session_id}`,
   );
 

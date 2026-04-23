@@ -1,17 +1,19 @@
 <script setup lang="ts">
+import { DeleteOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
-import { Button, Divider, Empty } from "ant-design-vue";
+import { Button, Divider, Empty, Modal, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
 
 const router = useRouter();
 const chatStore = useChatStore();
 
+const isHistoryBusy = () =>
+  chatStore.loading ||
+  chatStore.historyContentLoading ||
+  !!chatStore.historyDeletingSessionId;
+
 const handleHistorySelect = (sessionId: string) => {
-  if (
-    chatStore.loading ||
-    chatStore.historyContentLoading ||
-    chatStore.activeSessionId === sessionId
-  ) {
+  if (isHistoryBusy() || chatStore.activeSessionId === sessionId) {
     return;
   }
 
@@ -24,12 +26,42 @@ const handleHistorySelect = (sessionId: string) => {
 };
 
 const handleCreateConversation = async () => {
-  if (chatStore.loading || chatStore.historyContentLoading) {
+  if (isHistoryBusy()) {
     return;
   }
 
   chatStore.resetCurrentSession();
   await router.push("/chat");
+};
+
+const handleDeleteHistory = (sessionId: string) => {
+  if (!sessionId || isHistoryBusy()) {
+    return;
+  }
+
+  Modal.confirm({
+    title: "提示",
+    content: "确定要删除这条历史记录吗？",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    onOk: async () => {
+      const isActiveSession = chatStore.activeSessionId === sessionId;
+      const res = await chatStore.deleteHistory(sessionId);
+
+      if (!res.ok) {
+        message.error(res.msg || "删除失败");
+        return Promise.reject();
+      }
+
+      if (isActiveSession) {
+        await router.replace("/chat");
+      }
+
+      message.success("已删除");
+      return true;
+    },
+  });
 };
 </script>
 
@@ -53,22 +85,39 @@ const handleCreateConversation = async () => {
 
       <div class="sidebar__sectionTitle">History</div>
       <div v-if="chatStore.historyItems.length" class="sidebar__historyList">
-        <button
+        <div
           v-for="item in chatStore.historyItems"
           :key="item.sessionId"
           :class="[
             'sidebar__historyItem',
             chatStore.activeSessionId === item.sessionId && 'is-active',
           ]"
-          type="button"
-          :disabled="chatStore.loading || chatStore.historyContentLoading"
-          @click="handleHistorySelect(item.sessionId)"
         >
-          <div class="sidebar__historyText">{{ item.title }}</div>
-          <div class="sidebar__historyMeta">
-            {{ item.sessionId }}
-          </div>
-        </button>
+          <button
+            class="sidebar__historyMain"
+            type="button"
+            :disabled="isHistoryBusy()"
+            @click="handleHistorySelect(item.sessionId)"
+          >
+            <div class="sidebar__historyText">{{ item.title }}</div>
+            <div class="sidebar__historyMeta">
+              {{ item.sessionId }}
+            </div>
+          </button>
+          <Button
+            danger
+            type="text"
+            class="sidebar__deleteBtn"
+            :loading="chatStore.historyDeletingSessionId === item.sessionId"
+            :disabled="isHistoryBusy()"
+            :title="`删除 ${item.title}`"
+            @click="handleDeleteHistory(item.sessionId)"
+          >
+            <template #icon>
+              <DeleteOutlined />
+            </template>
+          </Button>
+        </div>
       </div>
       <Empty
         v-else
@@ -137,22 +186,18 @@ const handleCreateConversation = async () => {
 }
 
 .sidebar__historyItem {
-  text-align: left;
   width: 100%;
-  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
   border-radius: 12px;
   background: rgba(248, 250, 252, 0.92);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  cursor: pointer;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease,
     transform 0.15s ease;
-}
-
-.sidebar__historyItem:disabled {
-  cursor: not-allowed;
-  opacity: 0.68;
 }
 
 .sidebar__historyItem:hover {
@@ -165,6 +210,20 @@ const handleCreateConversation = async () => {
   border-color: rgba(24, 144, 255, 0.52);
   background: rgba(230, 244, 255, 0.92);
   box-shadow: 0 12px 22px rgba(37, 99, 235, 0.1);
+}
+
+.sidebar__historyMain {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar__historyMain:disabled {
+  cursor: not-allowed;
 }
 
 .sidebar__historyText {
@@ -181,6 +240,16 @@ const handleCreateConversation = async () => {
   font-size: 12px;
   color: rgba(15, 23, 42, 0.46);
   word-break: break-all;
+}
+
+.sidebar__deleteBtn {
+  flex: none;
+  margin-top: 2px;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
 }
 
 .sidebar__empty {

@@ -6,9 +6,9 @@ import { Button, Card, Col, Divider, Row, Space, Tag } from "ant-design-vue";
 const router = useRouter();
 
 const samplePrompts = [
-  "我要申请日本旅游签证，生成 7 天游览行程（东京 + 大阪），预算 8000 元",
+  "我要去日本旅游，请帮我规划 7 天游览行程（东京 + 大阪），预算 8000 元",
   "帮我生成法国 10 日签证用行程，包含每日安排与酒店建议",
-  "计划 5 天新加坡自由行，适合签证材料展示的行程单",
+  "计划 5 天新加坡自由行，请帮我规划行程并展示的行程单",
 ];
 
 const trustStats = [

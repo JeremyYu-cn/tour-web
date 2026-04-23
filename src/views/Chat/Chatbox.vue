@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { SendOutlined } from "@ant-design/icons-vue";
 import { Button, Card, Input, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
+import type { ChatMessageItem } from "@/types/chat";
 
 const quickPrompts = [
   "我要申请日本旅游签证，计划 7 天游览东京+大阪，预算 8000 元",
@@ -69,13 +70,21 @@ const handleSend = async () => {
 const handlePromptSelect = (prompt: string) => {
   input.value = prompt;
 };
+
+const isPendingAssistantMessage = (messageItem: ChatMessageItem) =>
+  messageItem.role === "assistant" &&
+  chatStore.loading &&
+  chatStore.activeSessionId === messageItem.sessionId &&
+  !messageItem.content;
 </script>
 
 <template>
   <Card class="card chatgpt__card" :bordered="false">
     <div class="chatgpt__messages" ref="chatMessage">
       <div
-        v-if="chatStore.historyContentLoading && chatStore.messages.length === 0"
+        v-if="
+          chatStore.historyContentLoading && chatStore.messages.length === 0
+        "
         class="empty-state"
       >
         <div class="empty-state__title">正在加载会话</div>
@@ -100,6 +109,17 @@ const handlePromptSelect = (prompt: string) => {
         </div>
         <div class="msg__bubble">
           <div
+            v-if="isPendingAssistantMessage(messageItem)"
+            class="msg__loading"
+          >
+            <div class="msg__loadingDots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div
+            v-if="messageItem.html || messageItem.content"
             class="msg__content"
             v-html="messageItem.html ?? messageItem.content"
           />
@@ -212,15 +232,17 @@ const handlePromptSelect = (prompt: string) => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 80%;
+  min-width: 0;
 }
 
 .msg--user {
   align-self: flex-end;
+  max-width: 80%;
 }
 
 .msg--ai {
   align-self: flex-start;
+  max-width: min(92%, 980px);
 }
 
 .msg__meta {
@@ -241,6 +263,7 @@ const handlePromptSelect = (prompt: string) => {
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  min-width: 0;
 }
 
 .msg--user .msg__bubble {
@@ -273,6 +296,79 @@ const handlePromptSelect = (prompt: string) => {
   line-height: 1.72;
   word-break: break-word;
   font-size: 14px;
+  min-width: 0;
+}
+
+.msg__reasoning {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.msg__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  color: rgba(100, 116, 139, 0.86);
+  font-size: 13px;
+}
+
+.msg__loadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.msg__loadingDots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.88);
+  animation: loading-bounce 1.15s infinite ease-in-out;
+}
+
+.msg__loadingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.msg__loadingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.msg__loadingText {
+  color: rgba(100, 116, 139, 0.92);
+}
+
+.msg__reasoningLabel {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(100, 116, 139, 0.9);
+}
+
+.msg__reasoningText {
+  color: rgba(100, 116, 139, 0.96);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@keyframes loading-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.42;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .msg__content :deep(p:first-child) {
@@ -317,6 +413,64 @@ const handlePromptSelect = (prompt: string) => {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.76);
   overflow-x: auto;
+}
+
+.msg__content :deep(.markdown-table-wrap) {
+  margin: 14px 0;
+  overflow-x: auto;
+  border: 1px solid rgba(203, 213, 225, 0.92);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  -webkit-overflow-scrolling: touch;
+}
+
+.msg__content :deep(.markdown-table-wrap:first-child) {
+  margin-top: 0;
+}
+
+.msg__content :deep(.markdown-table-wrap:last-child) {
+  margin-bottom: 0;
+}
+
+.msg__content :deep(.markdown-table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.msg__content :deep(.markdown-table th),
+.msg__content :deep(.markdown-table td) {
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid rgba(226, 232, 240, 0.88);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.88);
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.msg__content :deep(.markdown-table th) {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 800;
+  text-align: left;
+}
+
+.msg__content :deep(.markdown-table tbody tr:nth-child(even)) {
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.msg__content :deep(.markdown-table tr:last-child td) {
+  border-bottom: 0;
+}
+
+.msg__content :deep(.markdown-table th:last-child),
+.msg__content :deep(.markdown-table td:last-child) {
+  border-right: 0;
 }
 
 .chatgpt__composer {
@@ -423,8 +577,12 @@ const handlePromptSelect = (prompt: string) => {
     padding: 14px;
   }
 
-  .msg {
+  .msg--user {
     max-width: 90%;
+  }
+
+  .msg--ai {
+    max-width: 100%;
   }
 
   .chatgpt__composer {

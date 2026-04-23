@@ -17,6 +17,9 @@ export type choice_t = {
 
 export type delta_t = {
   content?: string;
+  Content?: string;
+  reasoningContent?: string;
+  reasoning_content?: string;
 };
 
 export type usage_t = {

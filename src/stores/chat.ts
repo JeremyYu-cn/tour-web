@@ -5,12 +5,17 @@ import type {
   ChatMessageItem,
   SessionTitleMap,
 } from "../types/chat";
+import type { common_reponse_t } from "@/types/request";
 import type { Itinerary } from "../types/itinerary";
 import { SSE } from "@/utils/sse";
 import type { deepseek_chat_chunk_t } from "@/views/Chat/handler";
 import { renderMarkdown, secheduleRender } from "@/utils/markdown";
 import { getLocalstorage, setLocalstorage } from "@/localStorage";
-import { getHistoryContentAPI, getHistoryListAPI } from "@/api/history";
+import {
+  deleteHistoryAPI,
+  getHistoryContentAPI,
+  getHistoryListAPI,
+} from "@/api/history";
 import { getSessionIdAPI } from "@/api/ai";
 
 const FALLBACK_TITLE_PREFIX = "新对话";
@@ -28,6 +33,7 @@ export const useChatStore = defineStore("chat", () => {
   const loading = ref(false);
   const historyLoading = ref(false);
   const historyContentLoading = ref(false);
+  const historyDeletingSessionId = ref("");
   const activeSessionId = ref("");
   const historySessionIds = ref<string[]>([]);
   const sessionTitleMap = ref<SessionTitleMap>(
@@ -40,7 +46,7 @@ export const useChatStore = defineStore("chat", () => {
     "id" | "createdAt"
   > | null>(null);
   const sse = new SSE({
-    url: "http://localhost:6780/api/v1/tour/chat",
+    url: import.meta.env.VITE_SSE_REQUEST_URL,
   });
 
   const persistSessionTitleMap = () => {
@@ -60,6 +66,17 @@ export const useChatStore = defineStore("chat", () => {
     persistSessionTitleMap();
   };
 
+  const removeSessionTitle = (sessionId: string) => {
+    if (!sessionId || !sessionTitleMap.value[sessionId]) {
+      return;
+    }
+
+    const nextSessionTitleMap = { ...sessionTitleMap.value };
+    delete nextSessionTitleMap[sessionId];
+    sessionTitleMap.value = nextSessionTitleMap;
+    persistSessionTitleMap();
+  };
+
   const historyItems = computed<ChatHistoryItem[]>(() =>
     historySessionIds.value.map((sessionId) => ({
       sessionId,
@@ -69,6 +86,17 @@ export const useChatStore = defineStore("chat", () => {
 
   const hasHistorySession = (sessionId: string) =>
     historySessionIds.value.includes(sessionId);
+
+  const removeHistorySession = (sessionId: string) => {
+    historySessionIds.value = historySessionIds.value.filter(
+      (item) => item !== sessionId,
+    );
+    removeSessionTitle(sessionId);
+
+    if (activeSessionId.value === sessionId) {
+      resetCurrentSession();
+    }
+  };
 
   const resetCurrentSession = (sessionId = "") => {
     activeSessionId.value = sessionId;
@@ -138,16 +166,19 @@ export const useChatStore = defineStore("chat", () => {
 
       const nextMessages = await Promise.all(
         res.data.map(async (item) => {
+          const content = item.content ?? item.Content ?? "";
+          const reasoningContent = item.reasoning_content ?? "";
           const nextMessage: ChatMessageItem = {
             id: crypto.randomUUID(),
             sessionId: item.sessionId,
             role: item.role,
-            content: item.content,
+            content,
+            reasoningContent,
             createdAt: item.createTime,
           };
 
-          if (item.role === "assistant" && item.content.trim()) {
-            nextMessage.html = await renderMarkdown(item.content);
+          if (item.role === "assistant" && content.trim()) {
+            nextMessage.html = await renderMarkdown(content);
           }
 
           return nextMessage;
@@ -163,11 +194,15 @@ export const useChatStore = defineStore("chat", () => {
 
       messages.value = nextMessages;
 
-      const firstUserMessage = res.data.find(
-        (item) => item.role === "user" && item.content.trim(),
-      );
+      const firstUserMessage = res.data.find((item) => {
+        const messageContent = item.content ?? item.Content ?? "";
+        return item.role === "user" && messageContent.trim();
+      });
       if (firstUserMessage) {
-        upsertSessionTitle(sessionId, firstUserMessage.content);
+        upsertSessionTitle(
+          sessionId,
+          firstUserMessage.content ?? firstUserMessage.Content ?? "",
+        );
       }
 
       return true;
@@ -188,6 +223,55 @@ export const useChatStore = defineStore("chat", () => {
 
     resetCurrentSession(res.data.sessionID);
     return res.data.sessionID;
+  };
+
+  const deleteHistory = async (
+    sessionId: string,
+  ): Promise<common_reponse_t<string | null>> => {
+    if (!sessionId) {
+      return {
+        ok: false,
+        code: -1,
+        msg: "缺少会话 ID",
+        data: null,
+      };
+    }
+
+    if (historyDeletingSessionId.value) {
+      return {
+        ok: false,
+        code: -1,
+        msg: "正在删除，请稍后",
+        data: null,
+      };
+    }
+
+    historyDeletingSessionId.value = sessionId;
+
+    try {
+      const res = await deleteHistoryAPI(sessionId);
+
+      if (res.ok) {
+        removeHistorySession(sessionId);
+      }
+
+      return {
+        ...res,
+        data: res.data ?? null,
+      };
+    } catch (err) {
+      console.log(err);
+      return {
+        ok: false,
+        code: -1,
+        msg: "删除历史记录失败",
+        data: null,
+      };
+    } finally {
+      if (historyDeletingSessionId.value === sessionId) {
+        historyDeletingSessionId.value = "";
+      }
+    }
   };
 
   const sendMessage = async (
@@ -217,6 +301,7 @@ export const useChatStore = defineStore("chat", () => {
       sessionId,
       role: "assistant",
       content: "",
+      reasoningContent: "",
       createdAt: new Date().toISOString(),
     });
     onMessage?.();
@@ -253,15 +338,15 @@ export const useChatStore = defineStore("chat", () => {
 
               try {
                 const res: deepseek_chat_chunk_t = JSON.parse(ev.data);
-                const chunk = res.choices[0].delta.content;
+                const delta = res.choices[0]?.delta;
+                const chunk = delta?.content ?? delta?.Content;
+                const assistantMessage = messages.value[assistantMessageIndex];
+
+                if (!assistantMessage) {
+                  return;
+                }
 
                 if (chunk) {
-                  const assistantMessage =
-                    messages.value[assistantMessageIndex];
-                  if (!assistantMessage) {
-                    return;
-                  }
-
                   assistantMessage.content += chunk;
                   markdownRender?.(assistantMessage.content, (html) => {
                     assistantMessage.html = html;
@@ -292,6 +377,7 @@ export const useChatStore = defineStore("chat", () => {
     loading,
     historyLoading,
     historyContentLoading,
+    historyDeletingSessionId,
     activeSessionId,
     historyItems,
     lastStructuredItinerary,
@@ -301,6 +387,7 @@ export const useChatStore = defineStore("chat", () => {
     fetchHistoryList,
     loadHistoryContent,
     createSession,
+    deleteHistory,
     sendMessage,
   };
 });

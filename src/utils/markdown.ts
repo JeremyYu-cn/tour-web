@@ -1,9 +1,30 @@
 import { marked } from "marked";
 import dompurify from "dompurify";
 
+function wrapTables(html: string) {
+  if (typeof document === "undefined") {
+    return html;
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  container.querySelectorAll("table").forEach((table) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "markdown-table-wrap";
+    table.classList.add("markdown-table");
+
+    table.parentNode?.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+
+  return container.innerHTML;
+}
+
 export async function renderMarkdown(content: string) {
   const html = await marked(content);
-  return dompurify.sanitize(html);
+  const sanitizedHtml = dompurify.sanitize(html);
+  return wrapTables(sanitizedHtml);
 }
 
 /**

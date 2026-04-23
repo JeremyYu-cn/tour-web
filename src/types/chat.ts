@@ -4,6 +4,7 @@ export interface ChatMessageItem {
   role: "user" | "assistant";
   createdAt: string;
   content: string;
+  reasoningContent?: string;
   html?: string;
 }
 

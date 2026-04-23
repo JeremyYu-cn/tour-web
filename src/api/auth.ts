@@ -22,9 +22,13 @@ export function getStoredAuth() {
   return getLocalstorage<auth_response_t>("token");
 }
 
-export async function authAPI() {
+export async function loginAPI() {
   const res = await authRequest.post<common_reponse_t<auth_response_t>>(
-    "/user/auth",
+    "/user/login",
+    {
+      user: "admin",
+      pass: "admin",
+    },
   );
 
   return res.data;
@@ -36,7 +40,7 @@ export async function refreshAuthToken() {
   }
 
   refreshAuthPromise = (async () => {
-    const res = await authAPI();
+    const res = await loginAPI();
 
     if (!res.ok) {
       removeLocalstorage("token");
