@@ -80,27 +80,41 @@ const onChange = (val: string | number) => {
 <style scoped>
 .app-tabbar--top {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   width: 100%;
 }
 
 .app-tabbar__top {
   display: flex;
-  gap: 20px;
+  gap: 4px;
   align-items: center;
-  padding: 8px 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
 }
 
 .app-tabbar__topItem {
   appearance: none;
   border: 0;
   background: transparent;
-  padding: 10px 4px;
+  min-width: 74px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 14px;
   cursor: pointer;
   color: var(--text-muted);
   font-weight: 750;
   position: relative;
-  transition: color 0.15s ease, transform 0.08s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    transform 0.08s ease;
+}
+
+.app-tabbar__topItem:hover {
+  color: var(--text-strong);
+  background: var(--surface-soft);
 }
 
 .app-tabbar__topItem:active {
@@ -108,12 +122,15 @@ const onChange = (val: string | number) => {
 }
 
 .app-tabbar__topItem.is-active {
-  color: var(--brand-sky-2);
+  color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {
   .app-tabbar {
     width: 100%;
+    max-width: 420px;
     pointer-events: auto;
   }
 
@@ -121,20 +138,21 @@ const onChange = (val: string | number) => {
     width: 100%;
     display: grid;
     gap: 8px;
-    padding: 20px 12px;
-    border-radius: 18px;
+    padding: 7px;
+    border-radius: 22px;
     background: rgba(255, 255, 255, 0.96) !important;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--line);
     backdrop-filter: blur(14px);
-    box-shadow: 0 14px 40px rgba(16, 24, 40, 0.14);
+    box-shadow: 0 16px 42px rgba(16, 24, 40, 0.12);
   }
 
   .app-tabbar__item {
     appearance: none;
     border: 0;
     background: transparent;
-    padding: 14px 10px;
-    border-radius: 14px;
+    min-height: 42px;
+    padding: 8px 6px;
+    border-radius: 16px;
     font-weight: 800;
     color: var(--text-muted);
     cursor: pointer;
@@ -146,14 +164,21 @@ const onChange = (val: string | number) => {
   }
 
   .app-tabbar__item.is-active {
-    background: rgba(51, 179, 255, 0.12);
-    color: var(--brand-sky-2);
+    background: var(--brand-soft);
+    color: var(--brand);
   }
 
   .app-tabbar__label {
     display: inline-block;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1;
+    white-space: nowrap;
   }
+}
+
+.app-tabbar__topItem .app-tabbar__label {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 </style>

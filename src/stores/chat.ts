@@ -167,7 +167,8 @@ export const useChatStore = defineStore("chat", () => {
       const nextMessages = await Promise.all(
         res.data.map(async (item) => {
           const content = item.content ?? item.Content ?? "";
-          const reasoningContent = item.reasoning_content ?? "";
+          const reasoningContent =
+            item.reasoning_content ?? item.reasoningContent ?? "";
           const nextMessage: ChatMessageItem = {
             id: crypto.randomUUID(),
             sessionId: item.sessionId,
@@ -340,10 +341,18 @@ export const useChatStore = defineStore("chat", () => {
                 const res: deepseek_chat_chunk_t = JSON.parse(ev.data);
                 const delta = res.choices[0]?.delta;
                 const chunk = delta?.content ?? delta?.Content;
+                const reasoningChunk =
+                  delta?.reasoning_content ?? delta?.reasoningContent;
                 const assistantMessage = messages.value[assistantMessageIndex];
 
                 if (!assistantMessage) {
                   return;
+                }
+
+                if (reasoningChunk) {
+                  assistantMessage.reasoningContent =
+                    `${assistantMessage.reasoningContent ?? ""}${reasoningChunk}`;
+                  onMessage?.();
                 }
 
                 if (chunk) {

@@ -69,11 +69,13 @@ const onTabChange = (val: string | number) => {
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-inline: 16px;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.88) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 24px;
+  height: 60px;
+  line-height: 1;
+  padding-inline: max(20px, calc((100vw - var(--content-max)) / 2 + 20px));
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-bottom: 1px solid rgba(228, 234, 241, 0.84);
+  backdrop-filter: blur(18px);
 }
 
 .app-brand {
@@ -87,27 +89,24 @@ const onTabChange = (val: string | number) => {
 }
 
 .app-brand__logo {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   object-fit: cover;
-  box-shadow: 0 8px 18px rgba(51, 179, 255, 0.18);
+  box-shadow: var(--shadow-soft);
 }
 
 .app-brand__text {
-  background: linear-gradient(135deg, var(--brand-sky-2), var(--brand-sky));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-size: 18px;
+  color: var(--text-strong);
+  font-size: 17px;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
 }
 
 .app-tabs {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .app-tabs--desktop {
@@ -120,10 +119,12 @@ const onTabChange = (val: string | number) => {
 
 .app-container {
   width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
 }
 
 .app-content {
-  padding: 20px;
+  padding: 24px 20px 34px;
   box-sizing: border-box;
 }
 
@@ -138,9 +139,19 @@ const onTabChange = (val: string | number) => {
     left: 0;
     right: 0;
     bottom: 0;
+    justify-content: center;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
     z-index: 20;
     pointer-events: none;
+  }
+
+  .app-header {
+    height: 58px;
+    padding-inline: 16px;
+  }
+
+  .app-content {
+    padding: 14px 12px 104px;
   }
 }
 </style>

@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import BasicLayout from "@/layouts/BasicLayout.vue";
 import { useRouter } from "vue-router";
+import {
+  CompassOutlined,
+  DatabaseOutlined,
+  FileDoneOutlined,
+  FileExcelOutlined,
+  RobotOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons-vue";
 import { Button, Card, Col, Divider, Row, Space, Tag } from "ant-design-vue";
 
 const router = useRouter();
@@ -12,9 +20,9 @@ const samplePrompts = [
 ];
 
 const trustStats = [
-  { value: "1 min", label: "快速出结果", tone: "sky", icon: "⚡" },
-  { value: "Excel / PDF", label: "材料导出", tone: "violet", icon: "📄" },
-  { value: "结构化", label: "可检索可管理", tone: "mint", icon: "🧩" },
+  { value: "1 min", label: "快速出结果", tone: "blue", icon: ThunderboltOutlined },
+  { value: "Excel / PDF", label: "材料导出", tone: "violet", icon: FileExcelOutlined },
+  { value: "结构化", label: "可检索可管理", tone: "mint", icon: DatabaseOutlined },
 ];
 </script>
 
@@ -57,7 +65,9 @@ const trustStats = [
               :class="['hero__stat', `hero__stat--${stat.tone}`]"
             >
               <div class="hero__statTop">
-                <span class="hero__statIcon">{{ stat.icon }}</span>
+                <span class="hero__statIcon">
+                  <component :is="stat.icon" />
+                </span>
                 <div class="hero__statNum">{{ stat.value }}</div>
               </div>
               <div class="hero__statText">{{ stat.label }}</div>
@@ -108,7 +118,9 @@ const trustStats = [
           :bordered="false"
         >
           <div class="feature">
-            <div class="feature__icon feature__icon--visa">AI</div>
+            <div class="feature__icon feature__icon--visa">
+              <RobotOutlined />
+            </div>
             <div class="feature__title">签证友好行程</div>
             <div class="feature__desc">
               行程更“像材料”：日期、城市、活动、住宿、交通、预算，一目了然。
@@ -122,7 +134,9 @@ const trustStats = [
           :bordered="false"
         >
           <div class="feature">
-            <div class="feature__icon feature__icon--export">📄</div>
+            <div class="feature__icon feature__icon--export">
+              <FileDoneOutlined />
+            </div>
             <div class="feature__title">一键导出</div>
             <div class="feature__desc">
               Excel/PDF 自动排版，适合打印/提交，减少整理时间。
@@ -136,7 +150,9 @@ const trustStats = [
           :bordered="false"
         >
           <div class="feature">
-            <div class="feature__icon feature__icon--flight">✈️</div>
+            <div class="feature__icon feature__icon--flight">
+              <CompassOutlined />
+            </div>
             <div class="feature__title">机票比价</div>
             <div class="feature__desc">
               后续接入多供应商报价，统一展示最低价与航班信息。
@@ -190,106 +206,116 @@ const trustStats = [
 
 <style scoped>
 .card {
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 850;
   margin-bottom: 8px;
+  color: var(--text-strong);
 }
 
 .muted {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-muted);
 }
 
 .hero {
-  border-radius: 18px;
-  padding: 28px 22px;
-  margin-bottom: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(24, 144, 255, 0.16),
-    rgba(255, 255, 255, 0.75)
-  );
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 30px;
+  padding: 34px;
+  margin-bottom: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
 }
 
 .hero--landing {
-  padding: 26px;
+  padding: 34px;
 }
 
 .hero__grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  gap: 16px;
+  gap: 22px;
   align-items: stretch;
+}
+
+.hero__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 
 .hero__badge {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 16px;
 }
 
 .hero__title {
-  font-size: 36px;
+  font-size: 38px;
   font-weight: 900;
-  letter-spacing: -0.6px;
-  color: rgba(0, 0, 0, 0.88);
+  letter-spacing: 0;
+  color: var(--text-strong);
+  line-height: 1.12;
 }
 
 .hero__title--landing {
-  font-size: 42px;
+  max-width: 620px;
+  font-size: 46px;
 }
 
 .hero__subtitle {
-  color: rgba(0, 0, 0, 0.65);
-  font-size: 15px;
-  line-height: 1.6;
+  max-width: 650px;
+  margin-top: 16px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.75;
 }
 
 .hero__actions {
-  margin: 10px 0px !important;
+  margin: 18px 0 0 !important;
 }
 
 .hero__btn-secondary {
-  border-color: rgba(26, 162, 255, 0.35) !important;
-  background: rgba(255, 255, 255, 0.96) !important;
-  color: var(--brand-sky-2) !important;
+  border-color: var(--line-strong) !important;
+  background: #ffffff !important;
+  color: var(--text-strong) !important;
   font-weight: 700;
-  box-shadow: 0 8px 18px rgba(26, 162, 255, 0.12);
+  box-shadow: none;
 }
 
 .hero__btn-secondary:hover,
 .hero__btn-secondary:focus {
-  border-color: rgba(26, 162, 255, 0.55) !important;
-  color: #0e8fde !important;
+  border-color: rgba(37, 99, 235, 0.28) !important;
+  color: var(--brand) !important;
   transform: translateY(-1px);
 }
 
 .hero__trust {
-  margin-top: 14px;
+  margin-top: 20px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .hero__stat {
-  border: 0;
-  border-radius: 14px;
-  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  background: var(--surface-soft);
   transition:
     transform 0.16s ease,
-    box-shadow 0.16s ease;
-  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12);
+    border-color 0.16s ease;
 }
 
 .hero__stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(16, 24, 40, 0.18);
+  border-color: var(--line-strong);
 }
 
 .hero__statTop {
@@ -299,55 +325,60 @@ const trustStats = [
 }
 
 .hero__statIcon {
-  width: 17px;
-  height: 17px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.28);
+  font-size: 15px;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
-.hero__stat--sky {
-  background: linear-gradient(135deg, #2ca6ff, #1bc7ff);
+.hero__stat--blue {
+  background: var(--brand-soft);
+  border-color: rgba(37, 99, 235, 0.1);
 }
 
 .hero__stat--violet {
-  background: linear-gradient(135deg, #7b61ff, #b26fff);
+  background: var(--violet-soft);
+  border-color: rgba(124, 58, 237, 0.1);
 }
 
 .hero__stat--mint {
-  background: linear-gradient(135deg, #00b894, #34d399);
+  background: var(--mint-soft);
+  border-color: rgba(18, 185, 129, 0.12);
 }
 
-.hero__statNum,
-.hero__statText {
-  color: rgba(255, 255, 255, 0.98);
+.hero__stat--blue .hero__statIcon {
+  color: var(--brand);
+}
+
+.hero__stat--violet .hero__statIcon {
+  color: var(--violet);
+}
+
+.hero__stat--mint .hero__statIcon {
+  color: var(--mint);
 }
 
 .hero__statNum {
-  font-size: 15px;
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .hero__statText {
-  margin-top: 8px;
-  opacity: 1;
+  margin-top: 10px;
+  color: var(--text);
   font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-weight: 700;
+  letter-spacing: 0;
   line-height: 1.35;
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.35);
 }
 .hero-panel__hint {
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .hero__panel {
@@ -356,7 +387,8 @@ const trustStats = [
 
 .hero-panel {
   width: 100%;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface-soft);
+  box-shadow: none;
 }
 
 .hero-panel__promptList {
@@ -368,23 +400,25 @@ const trustStats = [
 }
 
 .prompt-chip {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid var(--line);
   cursor: pointer;
   user-select: none;
   transition:
     transform 0.12s ease,
-    box-shadow 0.12s ease;
-  color: rgba(0, 0, 0, 0.78);
+    border-color 0.12s ease,
+    background 0.12s ease;
+  color: var(--text);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .prompt-chip:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+  border-color: rgba(37, 99, 235, 0.28);
+  background: #f9fbff;
 }
 
 .feature {
@@ -394,105 +428,90 @@ const trustStats = [
 }
 
 .feature__icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  font-weight: 900;
-  background: rgba(24, 144, 255, 0.12);
-  color: rgba(0, 0, 0, 0.78);
+  font-size: 18px;
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .feature__title {
   font-size: 16px;
   font-weight: 850;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--text-strong);
 }
 
 .feature__desc {
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--text);
+  line-height: 1.65;
 }
 
 .section--steps {
   margin-top: 16px;
-  background: rgba(255, 255, 255, 0.75);
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(245, 250, 255, 0.98)
-  );
-  border: 1px solid rgba(30, 167, 253, 0.12);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.05);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
 }
 
 .home-feature-card {
-  background: linear-gradient(
-    155deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(246, 250, 255, 0.96)
-  );
-  border: 1px solid rgba(30, 167, 253, 0.12);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
   transition:
     transform 0.18s ease,
-    box-shadow 0.18s ease,
     border-color 0.18s ease;
 }
 
 .home-feature-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
 }
 
 .home-feature-card--visa {
-  border-top: 3px solid rgba(15, 163, 177, 0.78);
+  background: var(--mint-soft);
 }
 
 .home-feature-card--export {
-  border-top: 3px solid rgba(92, 107, 192, 0.78);
+  background: var(--violet-soft);
 }
 
 .home-feature-card--flight {
-  border-top: 3px solid rgba(255, 159, 67, 0.78);
+  background: var(--coral-soft);
 }
 
 .feature__icon--visa {
-  background: linear-gradient(135deg, #0fa3b1, #56d7c4);
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--mint);
 }
 
 .feature__icon--export {
-  background: linear-gradient(135deg, #5c6bc0, #917cff);
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--violet);
 }
 
 .feature__icon--flight {
-  background: linear-gradient(135deg, #ff9f43, #ffd36e);
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--coral);
 }
 
 .step--home {
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 14px;
-  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
   height: 100%;
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(248, 251, 255, 0.96)
-  );
-  border-color: rgba(30, 167, 253, 0.12);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  background: var(--surface-soft);
 }
 
 .step--home .step__num {
   font-weight: 900;
-  letter-spacing: 0.8px;
+  letter-spacing: 0;
   font-size: 12px;
-  color: #1677ff;
-  background: rgba(22, 119, 255, 0.08);
-  border: 1px solid rgba(22, 119, 255, 0.14);
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid rgba(37, 99, 235, 0.12);
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
@@ -503,13 +522,14 @@ const trustStats = [
 
 .step--home .step__title {
   font-weight: 900;
-  margin-top: 6px;
-  color: #0f172a;
+  margin-top: 10px;
+  color: var(--text-strong);
 }
 
 .step--home .step__desc {
   margin-top: 6px;
-  color: rgba(15, 23, 42, 0.68);
+  color: var(--text);
+  line-height: 1.65;
 }
 
 .steps-row {
@@ -521,8 +541,15 @@ const trustStats = [
 }
 
 @media (max-width: 640px) {
+  .hero,
+  .hero--landing {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
   .hero__title {
-    font-size: 28px;
+    font-size: 27px;
+    line-height: 1.18;
   }
 
   .hero__grid {
@@ -530,11 +557,56 @@ const trustStats = [
   }
 
   .hero__title--landing {
-    font-size: 30px;
+    font-size: 29px;
   }
 
   .hero__trust {
     grid-template-columns: 1fr;
+  }
+
+  .hero__subtitle {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .hero__actions {
+    width: 100%;
+  }
+
+  .hero__actions :deep(.ant-space-item),
+  .hero__actions :deep(.ant-btn) {
+    width: 100%;
+  }
+
+  .hero__badge {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .hero__badge :deep(.ant-tag) {
+    margin-inline-end: 0;
+    font-size: 12px;
+  }
+
+  .hero-panel {
+    border-radius: 20px;
+  }
+
+  .prompt-chip {
+    padding: 11px 12px;
+  }
+
+  .feature {
+    gap: 7px;
+  }
+
+  .section--steps {
+    margin-top: 14px;
+  }
+
+  .step--home {
+    padding: 14px;
   }
 }
 </style>

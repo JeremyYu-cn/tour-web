@@ -54,7 +54,7 @@ watch(
 <style scoped>
 .chatgpt {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -66,6 +66,7 @@ watch(
 @media (max-width: 640px) {
   .chatgpt {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 </style>

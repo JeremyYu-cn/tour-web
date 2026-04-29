@@ -6,13 +6,13 @@ const EXCEL_MIME_TYPE =
 const DEFAULT_CELL_VALUE = 'N/A'
 
 const EXPORT_COLUMNS = [
-  { header: 'Date', key: 'date', width: 14 },
-  { header: 'Country', key: 'country', width: 12 },
-  { header: 'City', key: 'city', width: 14 },
-  { header: 'Touring Sports', key: 'touringSports', width: 42 },
-  { header: 'Time', key: 'time', width: 12 },
-  { header: 'Transportation', key: 'transportation', width: 18 },
-  { header: 'Accomodation', key: 'accomodation', width: 20 },
+  { header: '日期 Date', key: 'date', width: 15 },
+  { header: '国家 Country', key: 'country', width: 14 },
+  { header: '城市 City', key: 'city', width: 15 },
+  { header: '行程安排 Activities', key: 'touringSports', width: 52 },
+  { header: '时间 Time', key: 'time', width: 16 },
+  { header: '交通 Transportation', key: 'transportation', width: 22 },
+  { header: '住宿 Accommodation', key: 'accomodation', width: 24 },
 ] as const
 
 type ExportColumnKey = (typeof EXPORT_COLUMNS)[number]['key']
@@ -35,16 +35,33 @@ const COLUMN_INDEX_BY_KEY = EXPORT_COLUMNS.reduce(
 )
 
 const BORDER_COLOR = { argb: 'FFD0D7DE' }
-const TOURING_SPORTS_CHARS_PER_LINE = 34
+const HEADER_ROW_NUMBER = 3
+const TOURING_SPORTS_CHARS_PER_LINE = 42
 const DATA_ROW_BASE_HEIGHT = 22
 const DATA_ROW_LINE_HEIGHT = 16
-const DATA_ROW_VERTICAL_PADDING = 4
+const DATA_ROW_VERTICAL_PADDING = 8
+const DATA_ROW_MAX_HEIGHT = 92
 const TIME_TOKEN_PATTERN =
-  /\b\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\s*-\s*\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\b|\b(?:Morning|Afternoon|Evening|Night)\b|\b\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\b/gi
+  /\b\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\s*-\s*\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\b|\b(?:Morning|Afternoon|Evening|Night)\b|(?:上午|中午|下午|傍晚|晚上|夜间|全天)|\b\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?\b/gi
 const HEADER_FILL = {
   type: 'pattern',
   pattern: 'solid',
-  fgColor: { argb: 'FFEFF6FF' },
+  fgColor: { argb: 'FF2563EB' },
+} as const
+const TITLE_FILL = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFE8F0FF' },
+} as const
+const ODD_GROUP_FILL = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFFFFFFF' },
+} as const
+const EVEN_GROUP_FILL = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF8FAFC' },
 } as const
 
 export interface TravelPlanActivityItem {
@@ -67,7 +84,9 @@ const HEADER_ALIASES: Record<ExportColumnKey, string[]> = {
   city: ['city', '城市'],
   touringSports: [
     'touringsports',
+    'touringspots',
     'touringsport',
+    'touringspot',
     'activities',
     'activity',
     'touring',
@@ -93,6 +112,23 @@ const HEADER_ALIASES: Record<ExportColumnKey, string[]> = {
     '酒店',
     '住宿',
   ],
+}
+
+function getColumnLetter(columnNumber: number) {
+  let dividend = columnNumber
+  let columnName = ''
+
+  while (dividend > 0) {
+    const modulo = (dividend - 1) % 26
+    columnName = String.fromCharCode(65 + modulo) + columnName
+    dividend = Math.floor((dividend - modulo) / 26)
+  }
+
+  return columnName
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
 }
 
 function sanitizeFileName(fileName: string) {
@@ -432,7 +468,7 @@ function applyCellBorder(
 function applyGroupedRowLayout(
   worksheet: ExcelJS.Worksheet,
   travelPlanRow: TravelPlanRow,
-  uniformRowHeight: number,
+  groupIndex: number,
 ) {
   const activityItems =
     travelPlanRow.activities.length > 0
@@ -440,6 +476,7 @@ function applyGroupedRowLayout(
       : [{ touringSports: DEFAULT_CELL_VALUE, time: DEFAULT_CELL_VALUE }]
 
   const startRowNumber = worksheet.rowCount + 1
+  const groupFill = groupIndex % 2 === 0 ? ODD_GROUP_FILL : EVEN_GROUP_FILL
 
   activityItems.forEach((activityItem, index) => {
     worksheet.addRow({
@@ -470,6 +507,11 @@ function applyGroupedRowLayout(
 
   for (let rowNumber = startRowNumber; rowNumber <= endRowNumber; rowNumber += 1) {
     const row = worksheet.getRow(rowNumber)
+    const activityItem = activityItems[rowNumber - startRowNumber]
+    const rowLineCount = Math.max(
+      estimateWrappedLineCount(activityItem.touringSports),
+      estimateWrappedLineCount(activityItem.time, 16),
+    )
 
     for (
       let columnNumber = 1;
@@ -479,63 +521,114 @@ function applyGroupedRowLayout(
       const cell = worksheet.getCell(rowNumber, columnNumber)
       const isTouringSportsColumn =
         columnNumber === COLUMN_INDEX_BY_KEY.touringSports
+      const isTimeColumn = columnNumber === COLUMN_INDEX_BY_KEY.time
 
       cell.alignment = {
-        vertical: 'middle',
+        vertical: isTouringSportsColumn ? 'top' : 'middle',
         horizontal: isTouringSportsColumn ? 'left' : 'center',
         wrapText: true,
       }
+      cell.font = {
+        name: 'Arial',
+        size: 10,
+        color: { argb: 'FF1F2937' },
+      }
+      cell.fill = groupFill
+
+      if (isTouringSportsColumn) {
+        cell.font = {
+          name: 'Arial',
+          size: 10,
+          color: { argb: 'FF111827' },
+        }
+      }
+
+      if (isTimeColumn) {
+        cell.font = {
+          name: 'Arial',
+          size: 10,
+          color: { argb: 'FF2563EB' },
+        }
+      }
     }
 
-    row.height = uniformRowHeight
-  }
-}
-
-function getUniformGroupedRowHeight(rows: TravelPlanRow[]) {
-  const maxLineCount = rows.reduce((rowMax, row) => {
-    const touringSportsMaxLineCount = row.activities.reduce(
-      (itemMax, activityItem) => {
-        return Math.max(
-          itemMax,
-          estimateWrappedLineCount(activityItem.touringSports),
-        )
-      },
-      1,
+    row.height = clamp(
+      rowLineCount * DATA_ROW_LINE_HEIGHT + DATA_ROW_VERTICAL_PADDING,
+      DATA_ROW_BASE_HEIGHT,
+      DATA_ROW_MAX_HEIGHT,
     )
-
-    return Math.max(rowMax, touringSportsMaxLineCount)
-  }, 1)
-
-  return Math.max(
-    DATA_ROW_BASE_HEIGHT,
-    maxLineCount * DATA_ROW_LINE_HEIGHT + DATA_ROW_VERTICAL_PADDING,
-  )
+  }
 }
 
 function createWorkbook(rows: TravelPlanRow[]) {
   const workbook = new ExcelJS.Workbook()
   const worksheet = workbook.addWorksheet('Travel Plan', {
-    views: [{ state: 'frozen', ySplit: 1 }],
+    views: [{ state: 'frozen', ySplit: HEADER_ROW_NUMBER }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: {
+        left: 0.25,
+        right: 0.25,
+        top: 0.45,
+        bottom: 0.45,
+        header: 0.2,
+        footer: 0.2,
+      },
+    },
   })
-  const uniformRowHeight = getUniformGroupedRowHeight(rows)
+  const lastColumnNumber = EXPORT_COLUMNS.length
+  const lastColumnLetter = getColumnLetter(lastColumnNumber)
 
   worksheet.columns = EXPORT_COLUMNS.map((column) => ({ ...column }))
-  worksheet.getRow(1).font = { bold: true, color: { argb: 'FF1E293B' } }
-  worksheet.getRow(1).fill = HEADER_FILL
-  worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' }
-  worksheet.getRow(1).height = 24
-  applyCellBorder(worksheet, 1, 1)
+  worksheet.mergeCells(1, 1, 1, lastColumnNumber)
+  worksheet.mergeCells(2, 1, 2, lastColumnNumber)
 
-  worksheet.eachRow((row) => {
-    row.alignment = {
-      vertical: 'top',
-      wrapText: true,
-    }
+  const titleCell = worksheet.getCell(1, 1)
+  titleCell.value = 'Easy Tour 签证行程单'
+  titleCell.font = {
+    name: 'Arial',
+    size: 16,
+    bold: true,
+    color: { argb: 'FF1E3A8A' },
+  }
+  titleCell.fill = TITLE_FILL
+  titleCell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+  const metaCell = worksheet.getCell(2, 1)
+  metaCell.value = `Generated by Easy Tour · ${new Date().toLocaleDateString()}`
+  metaCell.font = {
+    name: 'Arial',
+    size: 10,
+    color: { argb: 'FF64748B' },
+  }
+  metaCell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+  worksheet.getRow(1).height = 30
+  worksheet.getRow(2).height = 20
+
+  const headerRow = worksheet.getRow(HEADER_ROW_NUMBER)
+  headerRow.values = EXPORT_COLUMNS.map((column) => column.header)
+  headerRow.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+  headerRow.fill = HEADER_FILL
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+  headerRow.height = 28
+  applyCellBorder(worksheet, HEADER_ROW_NUMBER, HEADER_ROW_NUMBER)
+
+  worksheet.autoFilter = {
+    from: `A${HEADER_ROW_NUMBER}`,
+    to: `${lastColumnLetter}${HEADER_ROW_NUMBER}`,
+  }
+
+  rows.forEach((row, index) => {
+    applyGroupedRowLayout(worksheet, row, index)
   })
 
-  rows.forEach((row) => {
-    applyGroupedRowLayout(worksheet, row, uniformRowHeight)
-  })
+  worksheet.getColumn(COLUMN_INDEX_BY_KEY.date).numFmt = '@'
+  worksheet.getColumn(COLUMN_INDEX_BY_KEY.time).numFmt = '@'
 
   return workbook
 }

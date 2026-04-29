@@ -7,6 +7,7 @@ export type history_content_t = {
   content: string;
   Content?: string;
   reasoning_content?: string;
+  reasoningContent?: string;
   createTime: string;
   role: "assistant" | "user";
 };

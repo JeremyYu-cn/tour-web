@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
+import { RobotOutlined } from "@ant-design/icons-vue";
 import BasicLayout from "@/layouts/BasicLayout.vue";
 import { getRecommendList } from "@/api/recommend";
 import type { RecommendChatHistoryFile } from "@/types/recommend";
@@ -34,6 +35,9 @@ const detailOpen = ref(false);
 const detailLoading = ref(false);
 const detailHtml = ref("");
 const activeItem = ref<RecommendChatHistoryFile | null>(null);
+const loadMoreTrigger = ref<HTMLElement | null>(null);
+
+let loadMoreObserver: IntersectionObserver | null = null;
 
 const getCoverSource = (item: RecommendChatHistoryFile) =>
   item.coverImageUrl ||
@@ -174,6 +178,36 @@ const fetchRecommendItems = async (reset = false) => {
   }
 };
 
+const tryLoadMore = () => {
+  if (!hasMore.value || initialLoading.value || loadingMore.value) {
+    return;
+  }
+
+  void fetchRecommendItems(false);
+};
+
+const observeLoadMoreTrigger = () => {
+  loadMoreObserver?.disconnect();
+
+  if (!loadMoreTrigger.value) {
+    return;
+  }
+
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        tryLoadMore();
+      }
+    },
+    {
+      rootMargin: "320px 0px",
+      threshold: 0.01,
+    },
+  );
+
+  loadMoreObserver.observe(loadMoreTrigger.value);
+};
+
 const openDetail = async (item: RecommendChatHistoryFile) => {
   activeItem.value = item;
   detailOpen.value = true;
@@ -198,8 +232,25 @@ watch(detailOpen, (open) => {
   }
 });
 
-onMounted(() => {
-  void fetchRecommendItems(true);
+watch(
+  () => filteredItems.value.length,
+  async (length) => {
+    if (length > 0) {
+      await nextTick();
+      observeLoadMoreTrigger();
+    }
+  },
+);
+
+onMounted(async () => {
+  await fetchRecommendItems(true);
+  await nextTick();
+  observeLoadMoreTrigger();
+});
+
+onBeforeUnmount(() => {
+  loadMoreObserver?.disconnect();
+  loadMoreObserver = null;
 });
 </script>
 
@@ -217,6 +268,9 @@ onMounted(() => {
 
         <Space wrap :size="12">
           <Button type="primary" @click="router.push('/chat')">
+            <template #icon>
+              <RobotOutlined />
+            </template>
             去 AI 定制
           </Button>
         </Space>
@@ -298,17 +352,21 @@ onMounted(() => {
                     {{ getDurationLabel(item) }}
                   </span>
                 </div>
-                <div class="recommend-card__coverBottom">
+              </div>
+
+              <div class="recommend-card__body">
+                <div>
                   <div class="recommend-card__eyebrow">Easy Tour Picks</div>
                   <div class="recommend-card__title">
                     {{ getDisplayTitle(item) }}
                   </div>
+                  <div class="recommend-card__summary">
+                    {{ getDisplaySummary(item) }}
+                  </div>
                 </div>
-              </div>
 
-              <div class="recommend-card__body">
                 <div class="recommend-card__meta">
-                  <span class="recommend-card__dateLabel">Published</span>
+                  <span class="recommend-card__dateLabel">发布时间</span>
                   <span class="recommend-card__dateValue">
                     {{ formatCreateTime(item.createTime) }}
                   </span>
@@ -319,7 +377,7 @@ onMounted(() => {
                     class="recommend-card__button"
                     @click="openDetail(item)"
                   >
-                    Open Trip
+                    查看行程
                   </Button>
                 </div>
               </div>
@@ -327,14 +385,16 @@ onMounted(() => {
           </article>
         </div>
 
-        <div class="recommend-footer">
-          <Button
-            v-if="hasMore"
-            :loading="loadingMore"
-            @click="fetchRecommendItems(false)"
-          >
-            加载更多
-          </Button>
+        <div ref="loadMoreTrigger" class="recommend-footer" aria-live="polite">
+          <span v-if="loadingMore" class="recommend-footer__status">
+            正在加载更多推荐行程…
+          </span>
+          <span v-else-if="hasMore" class="recommend-footer__status">
+            继续下滑加载更多
+          </span>
+          <span v-else class="recommend-footer__status">
+            已加载全部推荐行程
+          </span>
         </div>
       </template>
     </div>
@@ -385,14 +445,15 @@ onMounted(() => {
 .recommend-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .recommend-hero,
 .recommend-toolbar,
 .recommend-card {
-  border-radius: 20px;
-  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
 }
 
 .recommend-hero {
@@ -400,11 +461,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 34%),
-    radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.14), transparent 26%),
-    linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.98));
-  border: 1px solid rgba(251, 191, 36, 0.16);
+  background: #ffffff;
 }
 
 .recommend-hero__copy {
@@ -412,22 +469,20 @@ onMounted(() => {
 }
 
 .recommend-hero__title {
-  font-family:
-    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
   font-size: 34px;
   font-weight: 900;
-  color: rgba(15, 23, 42, 0.96);
-  letter-spacing: -0.6px;
+  color: var(--text-strong);
+  letter-spacing: 0;
 }
 
 .recommend-hero__desc {
   margin-top: 8px;
-  color: rgba(51, 65, 85, 0.82);
+  color: var(--text);
   line-height: 1.7;
 }
 
 .recommend-toolbar {
-  background: rgba(255, 255, 255, 0.94);
+  background: #ffffff;
 }
 
 .recommend-toolbar__inner {
@@ -444,12 +499,12 @@ onMounted(() => {
 .recommend-toolbar__title {
   font-size: 15px;
   font-weight: 800;
-  color: rgba(15, 23, 42, 0.92);
+  color: var(--text-strong);
 }
 
 .recommend-toolbar__desc {
   margin-top: 4px;
-  color: rgba(100, 116, 139, 0.92);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -468,35 +523,34 @@ onMounted(() => {
 }
 
 .recommend-card {
-  background: linear-gradient(180deg, #fffdf8, #ffffff 38%, #fffefb);
+  background: #ffffff;
   overflow: hidden;
-  border: 1px solid rgba(226, 232, 240, 0.65);
+  border: 1px solid var(--line);
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease,
     border-color 0.2s ease;
 }
 
 .recommend-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(245, 158, 11, 0.24);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
 }
 
 .recommend-card__cover {
   margin: -24px -24px 16px;
   position: relative;
   overflow: hidden;
-  aspect-ratio: 4 / 5;
-  border-radius: 20px 20px 0 0;
+  aspect-ratio: 16 / 11;
+  border-radius: var(--radius-lg) var(--radius-lg) 18px 18px;
+  background: var(--surface-muted);
 }
 
 .recommend-waterfall__item:nth-child(3n + 2) .recommend-card__cover {
-  aspect-ratio: 4 / 4.3;
+  aspect-ratio: 16 / 10;
 }
 
 .recommend-waterfall__item:nth-child(4n) .recommend-card__cover {
-  aspect-ratio: 4 / 5.6;
+  aspect-ratio: 16 / 12;
 }
 
 .recommend-card__coverImage {
@@ -507,16 +561,13 @@ onMounted(() => {
 }
 
 .recommend-card__coverImage--fallback {
-  background:
-    linear-gradient(145deg, #dbeafe, #eff6ff 45%, #fff7ed);
+  background: var(--brand-soft);
 }
 
 .recommend-card__coverShade {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.08), transparent 32%),
-    linear-gradient(180deg, transparent 35%, rgba(15, 23, 42, 0.78));
+  background: rgba(16, 24, 40, 0.04);
 }
 
 .recommend-card__coverTop,
@@ -543,26 +594,26 @@ onMounted(() => {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: var(--text-strong);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18px;
+  letter-spacing: 0;
 }
 
 .recommend-card__chip--primary {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(232, 240, 255, 0.92);
+  color: var(--brand);
 }
 
 .recommend-card__eyebrow {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-  margin-bottom: 8px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
 }
 
 .recommend-card__body {
@@ -579,26 +630,33 @@ onMounted(() => {
 }
 
 .recommend-card__dateLabel {
-  color: rgba(148, 163, 184, 0.96);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.48px;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .recommend-card__title {
-  font-family:
-    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
-  font-size: 26px;
+  font-size: 19px;
   font-weight: 900;
-  line-height: 1.12;
-  color: rgba(255, 255, 255, 0.98);
-  letter-spacing: -0.5px;
-  text-shadow: 0 8px 26px rgba(15, 23, 42, 0.5);
+  line-height: 1.32;
+  color: var(--text-strong);
+  letter-spacing: 0;
+}
+
+.recommend-card__summary {
+  margin-top: 8px;
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .recommend-card__dateValue {
-  color: rgba(51, 65, 85, 0.9);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -610,24 +668,37 @@ onMounted(() => {
 :deep(.recommend-card__button) {
   width: 100%;
   height: 42px;
-  border-radius: 14px;
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  background: linear-gradient(135deg, #f8fbff, #eef4ff) !important;
-  color: #1d4ed8 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  border-radius: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: var(--brand-soft) !important;
+  color: var(--brand) !important;
   font-weight: 700;
+  box-shadow: none;
 }
 
-.recommend-footer :deep(.ant-btn) {
-  height: 42px;
-  padding-inline: 20px;
-  border-radius: 999px;
+:deep(.recommend-card__button:hover) {
+  border-color: rgba(37, 99, 235, 0.28);
+  color: var(--brand-hover) !important;
 }
 
 .recommend-footer {
   display: flex;
   justify-content: center;
-  padding-bottom: 8px;
+  min-height: 48px;
+  padding: 6px 0 10px;
+}
+
+.recommend-footer__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .recommend-detail {
@@ -640,7 +711,7 @@ onMounted(() => {
   width: 100%;
   max-height: 280px;
   object-fit: cover;
-  border-radius: 16px;
+  border-radius: 20px;
 }
 
 .recommend-detail__meta {
@@ -648,26 +719,26 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: rgba(100, 116, 139, 0.9);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .recommend-detail__summary {
   padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(241, 245, 249, 0.8);
-  color: rgba(30, 41, 59, 0.9);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--text-strong);
   font-weight: 700;
   line-height: 1.75;
 }
 
 .recommend-detail__credit {
-  color: rgba(100, 116, 139, 0.86);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .recommend-detail__content {
-  color: rgba(30, 41, 59, 0.96);
+  color: var(--text-strong);
   line-height: 1.8;
 }
 
@@ -678,9 +749,9 @@ onMounted(() => {
 .recommend-detail__content :deep(.markdown-table-wrap) {
   margin: 14px 0;
   overflow-x: auto;
-  border: 1px solid rgba(203, 213, 225, 0.92);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
 }
 
 .recommend-detail__content :deep(.markdown-table) {
@@ -694,16 +765,16 @@ onMounted(() => {
 .recommend-detail__content :deep(.markdown-table th),
 .recommend-detail__content :deep(.markdown-table td) {
   padding: 10px 12px;
-  border-right: 1px solid rgba(226, 232, 240, 0.88);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.88);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   vertical-align: top;
   white-space: normal;
   overflow-wrap: break-word;
 }
 
 .recommend-detail__content :deep(.markdown-table th) {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--surface-soft);
+  color: var(--text-strong);
   font-weight: 800;
   text-align: left;
 }
@@ -724,26 +795,97 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .recommend-page {
+    gap: 14px;
+  }
+
   .recommend-hero {
     flex-direction: column;
     align-items: flex-start;
+    gap: 14px;
   }
 
   .recommend-hero__title {
-    font-size: 24px;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .recommend-hero__desc {
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .recommend-hero :deep(.ant-space),
+  .recommend-hero :deep(.ant-space-item),
+  .recommend-hero :deep(.ant-btn) {
+    width: 100%;
   }
 
   .recommend-waterfall {
     column-count: 1;
+    column-gap: 0;
   }
 
   .recommend-toolbar__inner {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .recommend-toolbar__search {
+    width: 100%;
   }
 
   .recommend-card__cover {
     aspect-ratio: 16 / 10;
+    margin: -16px -16px 14px;
+    border-radius: 20px 20px 16px 16px;
+  }
+
+  .recommend-waterfall__item:nth-child(3n + 2) .recommend-card__cover,
+  .recommend-waterfall__item:nth-child(4n) .recommend-card__cover {
+    aspect-ratio: 16 / 10;
+  }
+
+  .recommend-card__coverTop {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+  }
+
+  .recommend-card__chip {
+    max-width: 100%;
+    font-size: 10px;
+  }
+
+  .recommend-card__title {
+    font-size: 17px;
+  }
+
+  .recommend-card__meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .recommend-footer__status {
+    width: 100%;
+  }
+
+  .recommend-detail__cover {
+    max-height: 190px;
+    border-radius: 16px;
+  }
+
+  .recommend-detail__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recommend-detail__summary {
+    padding: 12px;
+    border-radius: 16px;
+    font-size: 13px;
   }
 }
 </style>

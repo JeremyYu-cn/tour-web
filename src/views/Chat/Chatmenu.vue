@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DeleteOutlined } from "@ant-design/icons-vue";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
 import { Button, Divider, Empty, Modal, message } from "ant-design-vue";
 import { useChatStore } from "@/stores/chat";
@@ -78,6 +78,9 @@ const handleDeleteHistory = (sessionId: string) => {
         :disabled="chatStore.loading || chatStore.historyContentLoading"
         @click="handleCreateConversation"
       >
+        <template #icon>
+          <PlusOutlined />
+        </template>
         新建对话
       </Button>
 
@@ -134,37 +137,38 @@ const handleDeleteHistory = (sessionId: string) => {
 <style scoped>
 .chatgpt__sidebar {
   position: sticky;
-  top: 84px;
-  height: calc(100vh - 110px);
+  top: 96px;
+  height: calc(100vh - 122px);
   overflow: auto;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 
 .sidebar__card {
-  border-radius: 14px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
 }
 
 .sidebar__title {
   font-size: 16px;
   font-weight: 900;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--text-strong);
 }
 
 .sidebar__subtitle {
   margin-top: 4px;
-  padding: 10px 0 0;
-  color: rgba(0, 0, 0, 0.6);
+  padding: 8px 0 0;
+  color: var(--text);
   font-size: 13px;
+  line-height: 1.6;
 }
 
 .sidebar__newBtn {
-  margin-top: 12px;
-  height: 40px;
-  border-radius: 12px;
+  margin-top: 14px;
+  height: 42px;
+  border-radius: 16px;
   font-weight: 800;
 }
 
@@ -174,7 +178,7 @@ const handleDeleteHistory = (sessionId: string) => {
 
 .sidebar__sectionTitle {
   font-weight: 850;
-  color: rgba(0, 0, 0, 0.78);
+  color: var(--text-strong);
   margin-bottom: 8px;
   font-size: 13px;
 }
@@ -190,26 +194,25 @@ const handleDeleteHistory = (sessionId: string) => {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px;
-  border-radius: 12px;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px solid transparent;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
+    background 0.15s ease,
     transform 0.15s ease;
 }
 
 .sidebar__historyItem:hover {
   transform: translateY(-1px);
-  border-color: rgba(24, 144, 255, 0.3);
-  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+  border-color: var(--line-strong);
+  background: #ffffff;
 }
 
 .sidebar__historyItem.is-active {
-  border-color: rgba(24, 144, 255, 0.52);
-  background: rgba(230, 244, 255, 0.92);
-  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.18);
+  background: var(--brand-soft);
 }
 
 .sidebar__historyMain {
@@ -227,8 +230,9 @@ const handleDeleteHistory = (sessionId: string) => {
 }
 
 .sidebar__historyText {
-  color: rgba(15, 23, 42, 0.86);
+  color: var(--text-strong);
   line-height: 1.45;
+  font-weight: 700;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -238,7 +242,7 @@ const handleDeleteHistory = (sessionId: string) => {
 .sidebar__historyMeta {
   margin-top: 6px;
   font-size: 12px;
-  color: rgba(15, 23, 42, 0.46);
+  color: var(--text-muted);
   word-break: break-all;
 }
 
@@ -249,7 +253,7 @@ const handleDeleteHistory = (sessionId: string) => {
   width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .sidebar__empty {
@@ -260,6 +264,35 @@ const handleDeleteHistory = (sessionId: string) => {
   .chatgpt__sidebar {
     position: static;
     height: auto;
+    border-radius: 20px;
+  }
+
+  .sidebar__card {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .sidebar__newBtn {
+    height: 40px;
+  }
+
+  .sidebar__divider {
+    margin: 12px 0;
+  }
+
+  .sidebar__historyList {
+    max-height: 178px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .sidebar__historyItem {
+    padding: 9px;
+    border-radius: 14px;
+  }
+
+  .sidebar__historyMeta {
+    display: none;
   }
 }
 </style>

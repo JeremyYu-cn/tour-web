@@ -91,6 +91,10 @@ const canExportAssistantTable = (messageItem: ChatMessageItem) =>
   messageItem.role === "assistant" &&
   hasTravelPlanTable(messageItem.content);
 
+const hasReasoningContent = (messageItem: ChatMessageItem) =>
+  messageItem.role === "assistant" &&
+  !!messageItem.reasoningContent?.trim();
+
 const getExportFileName = (messageItem: ChatMessageItem) => {
   const sessionTitle = chatStore.historyItems.find(
     (item) => item.sessionId === messageItem.sessionId,
@@ -145,6 +149,16 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
           {{ messageItem.role === "user" ? "你" : "Easy Tour AI" }}
         </div>
         <div class="msg__bubble">
+          <div
+            v-if="hasReasoningContent(messageItem)"
+            class="msg__reasoning"
+          >
+            <div class="msg__reasoningLabel">思考中</div>
+            <div class="msg__reasoningText">
+              {{ messageItem.reasoningContent }}
+            </div>
+          </div>
+
           <div
             v-if="isPendingAssistantMessage(messageItem)"
             class="msg__loading"
@@ -230,8 +244,8 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 <style scoped>
 .card {
-  border-radius: 22px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .chatgpt__header {
@@ -242,7 +256,7 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 .chatgpt__card {
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--line);
   background: #ffffff;
 }
 
@@ -257,10 +271,10 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   flex-direction: column;
   gap: 14px;
   padding: 20px;
-  height: 60vh;
+  height: 62vh;
   overflow: auto;
-  background: linear-gradient(180deg, #f8fafc, #f6f8fb);
-  border-radius: 5px;
+  background: var(--surface-soft);
+  border-radius: 0;
 }
 
 .chatgpt__title {
@@ -272,18 +286,19 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 .empty-state {
   padding: 22px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px dashed var(--line-strong);
 }
 
 .empty-state__title {
   font-weight: 900;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--text-strong);
 }
 
 .empty-state__desc {
   margin-top: 6px;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--text);
 }
 
 .msg {
@@ -306,8 +321,8 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 .msg__meta {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.3px;
-  color: rgba(100, 116, 139, 0.85);
+  letter-spacing: 0;
+  color: var(--text-muted);
   padding-inline: 6px;
 }
 
@@ -317,37 +332,31 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 .msg__bubble {
   padding: 14px 16px 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: none;
   min-width: 0;
 }
 
 .msg--user .msg__bubble {
-  background: linear-gradient(135deg, #e6f4ff, #f4faff 60%, #ffffff);
-  border-color: rgba(147, 197, 253, 0.78);
-  border-top-right-radius: 8px;
-  box-shadow: 0 10px 24px rgba(96, 165, 250, 0.1);
+  background: var(--brand);
+  border-color: var(--brand);
+  border-top-right-radius: 10px;
 }
 
 .msg--ai .msg__bubble {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(248, 250, 252, 0.98)
-  );
-  border-color: rgba(226, 232, 240, 0.98);
-  border-top-left-radius: 8px;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  background: #ffffff;
+  border-color: var(--line);
+  border-top-left-radius: 10px;
 }
 
 .msg--user .msg__content {
-  color: #0f3e66;
+  color: #ffffff;
 }
 
 .msg--ai .msg__content {
-  color: #1e293b;
+  color: var(--text-strong);
 }
 
 .msg__content {
@@ -359,10 +368,9 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 .msg__reasoning {
   margin-bottom: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(148, 163, 184, 0.1);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
 }
 
 .msg__loading {
@@ -370,7 +378,7 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   align-items: center;
   gap: 10px;
   min-height: 28px;
-  color: rgba(100, 116, 139, 0.86);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -384,7 +392,7 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.88);
+  background: var(--brand);
   animation: loading-bounce 1.15s infinite ease-in-out;
 }
 
@@ -401,16 +409,18 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .msg__reasoningLabel {
-  margin-bottom: 6px;
-  font-size: 12px;
+  margin-bottom: 4px;
+  font-size: 11px;
   font-weight: 700;
-  color: rgba(100, 116, 139, 0.9);
+  color: var(--text-muted);
 }
 
 .msg__reasoningText {
-  color: rgba(100, 116, 139, 0.96);
-  font-size: 13px;
-  line-height: 1.7;
+  max-height: 120px;
+  overflow-y: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -425,17 +435,17 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   height: 30px;
   padding-inline: 14px;
   border-radius: 999px;
-  border: 1px solid rgba(22, 163, 74, 0.22);
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  color: #166534;
+  border: 1px solid rgba(18, 185, 129, 0.2);
+  background: var(--mint-soft);
+  color: #067647;
   font-weight: 700;
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.14);
+  box-shadow: none;
 }
 
 :deep(.msg__exportBtn:hover) {
-  border-color: rgba(22, 163, 74, 0.34);
-  background: linear-gradient(135deg, #ecfdf5, #bbf7d0);
-  color: #14532d;
+  border-color: rgba(18, 185, 129, 0.32);
+  background: #ddfbea;
+  color: #05603a;
 }
 
 :deep(.msg__exportBtn.ant-btn-default:not(:disabled):not(.ant-btn-disabled)) {
@@ -452,8 +462,8 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 :deep(.msg__exportBtn.ant-btn-default:disabled),
 :deep(.msg__exportBtn.ant-btn-default.ant-btn-disabled) {
   border-color: rgba(148, 163, 184, 0.28);
-  background: linear-gradient(135deg, #f8fafc, #eef2f7);
-  color: rgba(100, 116, 139, 0.86);
+  background: var(--surface-muted);
+  color: var(--text-muted);
   box-shadow: none;
 }
 
@@ -494,34 +504,34 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .msg--ai :deep(code) {
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--surface-muted);
 }
 
 .msg--user :deep(code) {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .msg--ai :deep(pre) {
   padding: 12px;
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.04);
+  background: var(--surface-soft);
   overflow-x: auto;
 }
 
 .msg--user :deep(pre) {
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.14);
   overflow-x: auto;
 }
 
 .msg__content :deep(.markdown-table-wrap) {
   margin: 14px 0;
   overflow-x: auto;
-  border: 1px solid rgba(203, 213, 225, 0.92);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: none;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -546,8 +556,8 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 .msg__content :deep(.markdown-table td) {
   min-width: 0;
   padding: 10px 12px;
-  border-right: 1px solid rgba(226, 232, 240, 0.88);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.88);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   vertical-align: top;
   white-space: normal;
   overflow-wrap: break-word;
@@ -555,8 +565,8 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .msg__content :deep(.markdown-table th) {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--surface-soft);
+  color: var(--text-strong);
   font-weight: 800;
   text-align: left;
   white-space: nowrap;
@@ -605,7 +615,7 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .msg__content :deep(.markdown-table tbody tr:nth-child(even)) {
-  background: rgba(248, 250, 252, 0.86);
+  background: var(--surface-soft);
 }
 
 .msg__content :deep(.markdown-table tr:last-child td) {
@@ -618,9 +628,9 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .chatgpt__composer {
-  padding: 10px 14px 14px;
-  border-top: 1px solid rgba(15, 23, 42, 0.06);
-  background: rgba(255, 255, 255, 0.98);
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
 }
 
 .chatgpt__quickStart {
@@ -631,12 +641,12 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   margin-bottom: 8px;
   font-size: 12px;
   font-weight: 800;
-  color: rgba(71, 85, 105, 0.82);
+  color: var(--text-strong);
 }
 
 .chatgpt__quickStartHint {
   margin-bottom: 8px;
-  color: rgba(100, 116, 139, 0.92);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -648,9 +658,9 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 .chatgpt__quickPrompt {
   appearance: none;
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  background: #f8fafc;
-  color: #334155;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--text);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 12px;
@@ -663,8 +673,9 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .chatgpt__quickPrompt:hover {
-  background: #eef6ff;
-  border-color: rgba(96, 165, 250, 0.8);
+  background: var(--brand-soft);
+  border-color: rgba(37, 99, 235, 0.24);
+  color: var(--brand);
   transform: translateY(-1px);
 }
 
@@ -680,9 +691,9 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 
 .chatgpt__input :deep(textarea) {
   padding: 11px 52px 11px 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   background: #ffffff;
-  border-color: rgba(203, 213, 225, 0.9);
+  border-color: var(--line);
   box-shadow: none;
 }
 
@@ -691,11 +702,11 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 .chatgpt__input:hover {
-  border-color: rgba(148, 163, 184, 0.9);
+  border-color: var(--line-strong);
 }
 
 .chatgpt__input:focus {
-  border-color: rgba(59, 130, 246, 0.9);
+  border-color: rgba(37, 99, 235, 0.5);
 }
 
 .chatgpt__sendBtn {
@@ -709,12 +720,13 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
   min-width: 32px;
   height: 32px;
   border: 0;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  background: var(--brand) !important;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
 }
 
 .btn_disable {
-  background: #a1a1a1 !important;
+  background: #cbd5e1 !important;
+  box-shadow: none;
 }
 
 .btn__icon {
@@ -722,21 +734,73 @@ const handleExportAssistantTable = async (messageItem: ChatMessageItem) => {
 }
 
 @media (max-width: 640px) {
+  .chatgpt__card {
+    border-radius: 20px;
+  }
+
   .chatgpt__messages {
-    height: 54vh;
-    padding: 14px;
+    height: min(52dvh, 520px);
+    min-height: 320px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .empty-state {
+    padding: 18px;
+    border-radius: 18px;
   }
 
   .msg--user {
-    max-width: 90%;
+    max-width: 92%;
   }
 
   .msg--ai {
     max-width: 100%;
   }
 
+  .msg__bubble {
+    padding: 12px 13px;
+    border-radius: 18px;
+  }
+
+  .msg__content {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
   .chatgpt__composer {
     padding: 10px 12px 12px;
+  }
+
+  .chatgpt__quickStartHint {
+    display: none;
+  }
+
+  .chatgpt__quickStartList {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chatgpt__quickPrompt {
+    flex: 0 0 auto;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chatgpt__input :deep(textarea) {
+    min-height: 48px !important;
+    padding: 10px 50px 10px 13px;
+    border-radius: 18px;
+  }
+
+  .msg__content :deep(.markdown-table th:nth-child(4)),
+  .msg__content :deep(.markdown-table td:nth-child(4)) {
+    width: 240px;
+    min-width: 240px;
   }
 }
 </style>
